@@ -12,3 +12,136 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+// ====================================
+// ENUMS
+// ====================================
+
+enum Rol {
+  ADMIN
+  TRABAJADORA
+}
+
+enum EstadoCita {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+  REPROGRAMADA
+  COMPLETADA
+  NO_ASISTIO
+}
+
+// ====================================
+// MODELOS
+// ====================================
+
+/// Usuario del sistema (Admin o Trabajadora con login)
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  nombre    String
+  email     String   @unique
+  password  String
+  rol       Rol
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación 1-1 con Trabajadora (solo si rol = TRABAJADORA)
+  trabajadora Trabajadora?
+
+}
+
+/// Trabajadora que puede atender citas
+model Trabajadora {
+  id        String   @id @default(uuid()) @db.Uuid
+  nombre    String
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación 1-1 con User
+  userId String @unique @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Relación con Citas
+  citas Cita[]
+
+}
+
+/// Cliente (sin login, solo datos de contacto)
+model Cliente {
+  id        String   @id @default(uuid()) @db.Uuid
+  nombre    String
+  telefono  String
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relación con Citas
+  citas Cita[]
+
+}
+
+/// Servicio ofrecido (manicure, pedicure, etc.)
+model Servicio {
+  id              String   @id @default(uuid()) @db.Uuid
+  nombre          String
+  duracionMinutos Int
+  activo          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relación muchos-a-muchos con Citas
+  citaServicios CitaServicio[]
+
+}
+
+/// Cita agendada
+model Cita {
+  id                String      @id @default(uuid()) @db.Uuid
+  fechaInicio       DateTime
+  fechaFin          DateTime
+  estado            EstadoCita  @default(PENDIENTE)
+  tokenCancelacion  String      @unique @default(uuid())
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  // Relaciones
+  clienteId     String  @db.Uuid
+  cliente       Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+
+  trabajadoraId String      @db.Uuid
+  trabajadora   Trabajadora @relation(fields: [trabajadoraId], references: [id], onDelete: Cascade)
+
+  // Relación muchos-a-muchos con Servicios
+  citaServicios CitaServicio[]
+
+  @@index([fechaInicio])
+  @@index([trabajadoraId])
+  @@index([estado])
+}
+
+/// Tabla intermedia: Cita <-> Servicio (muchos a muchos)
+model CitaServicio {
+  id String @id @default(uuid()) @db.Uuid
+
+  citaId     String   @db.Uuid
+  cita       Cita     @relation(fields: [citaId], references: [id], onDelete: Cascade)
+
+  servicioId String   @db.Uuid
+  servicio   Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([citaId, servicioId])
+}
+
+/// Días bloqueados (feriados, vacaciones, etc.)
+model DiaBloqueado {
+  id        String   @id @default(uuid()) @db.Uuid
+  fecha     DateTime @unique @db.Date
+  motivo    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
