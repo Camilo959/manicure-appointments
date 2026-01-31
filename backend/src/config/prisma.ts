@@ -1,16 +1,15 @@
 /**
- * Cliente de Prisma centralizado
- * 
- * Este archivo exporta una única instancia del cliente de Prisma
- * para ser reutilizada en toda la aplicación.
- * 
- * Incluye:
- * - Singleton pattern para evitar múltiples instancias
- * - Logging en desarrollo
- * - Manejo de desconexión limpia
+ * Cliente de Prisma
  */
 
-import { PrismaClient } from '../generated/prisma/client';
+import "dotenv/config";
+import { PrismaPg } from '@prisma/adapter-pg'
+import { PrismaClient } from '../../generated/prisma/client';
+
+const connectionString = `${process.env.DATABASE_URL}`
+
+const adapter = new PrismaPg({ connectionString })
+const prisma = new PrismaClient({ adapter })
 
 // Extensión del tipo global para el singleton
 declare global {
@@ -18,17 +17,6 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-/**
- * Instancia única de Prisma Client
- * En desarrollo, usa el global para evitar múltiples instancias con hot reload
- */
-const prisma = global.prisma || new PrismaClient({
-  log: process.env.NODE_ENV === 'development' 
-    ? ['query', 'info', 'warn', 'error']
-    : ['error'],
-});
-
-// En desarrollo, guardar en global para reutilizar en hot reload
 if (process.env.NODE_ENV === 'development') {
   global.prisma = prisma;
 }
