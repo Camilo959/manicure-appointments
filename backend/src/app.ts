@@ -4,7 +4,7 @@ import cors from 'cors';
 import { errorMiddleware } from './middlewares/error.middleware';
 
 // Rutas
-//import { authRoutes } from './modules/auth/auth.routes'
+import authRoutes from './modules/auth/auth.routes'
 //import { citaRoutes } from './modules/citas/cita.routes'
 
 export const app = express();
@@ -19,7 +19,7 @@ app.get('/health', (_req, res) => {
 });
 
 // Rutas
-//app.use('/api/auth', authRoutes)
+app.use('/api/auth', authRoutes);
 //app.use('/api/citas', citaRoutes)
 
 // Middleware de errores (SIEMPRE al final)
