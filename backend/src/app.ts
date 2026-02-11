@@ -6,6 +6,7 @@ import { errorMiddleware } from './middlewares/error.middleware';
 // Rutas
 import authRoutes from './modules/auth/auth.routes';
 import servicioRoutes from './modules/servicios/servicio.routes';
+import disponibilidadRoutes from './modules/citas/disponibilidad.routes';
 
 export const app = express();
 
@@ -21,6 +22,8 @@ app.get('/health', (_req, res) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/servicios', servicioRoutes);
+app.use('/api/citas', disponibilidadRoutes);
+
 
 // Middleware de errores (SIEMPRE al final)
 app.use(errorMiddleware);
