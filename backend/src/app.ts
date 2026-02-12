@@ -7,6 +7,7 @@ import { errorMiddleware } from './middlewares/error.middleware';
 import authRoutes from './modules/auth/auth.routes';
 import servicioRoutes from './modules/servicios/servicio.routes';
 import disponibilidadRoutes from './modules/citas/disponibilidad.routes';
+import trabajadoraRoutes from './modules/trabajadoras/trabajadora.routes';
 
 export const app = express();
 
@@ -22,6 +23,7 @@ app.get('/health', (_req, res) => {
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/servicios', servicioRoutes);
+app.use('/api/trabajadoras', trabajadoraRoutes);
 app.use('/api/citas', disponibilidadRoutes);
 
 
