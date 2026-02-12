@@ -1,6 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { TrabajadoraRepository } from './trabajadora.repository';
 import type { CrearTrabajadoraInput, ActualizarTrabajadoraInput } from './trabajadora.validation';
+import {
+  TrabajadoraNotFoundError,
+  TrabajadoraEmailDuplicateError,
+  TrabajadoraInactiveError,
+  TrabajadoraWithAppointmentsError,
+  LastActiveTrabajadoraError,
+} from './trabajadora.errors';
 
 /**
  * Servicio con la lógica de negocio para Trabajadoras
@@ -16,7 +23,7 @@ export class TrabajadoraService {
     const usuarioExistente = await this.repository.buscarUsuarioPorEmail(data.email);
 
     if (usuarioExistente) {
-      throw new Error('Ya existe un usuario con ese email');
+      throw new TrabajadoraEmailDuplicateError(data.email);
     }
 
     // Hashear contraseña
@@ -82,7 +89,7 @@ export class TrabajadoraService {
     const trabajadora = await this.repository.buscarPorId(id);
 
     if (!trabajadora) {
-      throw new Error('Trabajadora no encontrada');
+      throw new TrabajadoraNotFoundError(id);
     }
 
     // Verificar si tiene citas agendadas
@@ -115,7 +122,7 @@ export class TrabajadoraService {
     const trabajadoraExistente = await this.repository.buscarPorId(id);
 
     if (!trabajadoraExistente) {
-      throw new Error('Trabajadora no encontrada');
+      throw new TrabajadoraNotFoundError(id);
     }
 
     // Si se actualiza el email, verificar que no exista otro usuario con ese email
@@ -123,7 +130,7 @@ export class TrabajadoraService {
       const emailDuplicado = await this.repository.buscarUsuarioPorEmail(data.email);
 
       if (emailDuplicado && emailDuplicado.id !== trabajadoraExistente.user.id) {
-        throw new Error('Ya existe otro usuario con ese email');
+        throw new TrabajadoraEmailDuplicateError(data.email);
       }
     }
 
@@ -163,25 +170,29 @@ export class TrabajadoraService {
     const trabajadora = await this.repository.buscarPorId(id);
 
     if (!trabajadora) {
-      throw new Error('Trabajadora no encontrada');
+      throw new TrabajadoraNotFoundError(id);
     }
 
-    // Si se intenta desactivar, verificar que no sea la única trabajadora activa
+    // Si se intenta ACTIVAR, validar que el usuario esté activo (edge case)
+    if (activa && !trabajadora.activa) {
+      if (!trabajadora.user.activo) {
+        throw new TrabajadoraInactiveError();
+      }
+    }
+
+    // Si se intenta DESACTIVAR, aplicar validaciones de negocio
     if (!activa && trabajadora.activa) {
       const cantidadActivas = await this.repository.contarActivas();
 
       if (cantidadActivas <= 1) {
-        throw new Error('No se puede desactivar la única trabajadora activa');
+        throw new LastActiveTrabajadoraError();
       }
 
       // Verificar que no tenga citas agendadas
       const tieneCitas = await this.repository.tieneCitasAgendadas(id);
 
       if (tieneCitas) {
-        throw new Error(
-          'No se puede desactivar la trabajadora porque tiene citas agendadas. ' +
-            'Cancele o reasigne las citas primero.'
-        );
+        throw new TrabajadoraWithAppointmentsError();
       }
     }
 

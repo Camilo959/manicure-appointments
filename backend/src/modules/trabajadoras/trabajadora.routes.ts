@@ -8,12 +8,14 @@ import {
   obtenerTrabajadoraPorId,
   actualizarTrabajadora,
   cambiarEstadoTrabajadora,
+  eliminarTrabajadora,
 } from './trabajadora.controller';
 import {
   crearTrabajadoraSchema,
   actualizarTrabajadoraSchema,
   cambiarEstadoTrabajadoraSchema,
   obtenerTrabajadoraPorIdSchema,
+  eliminarTrabajadoraSchema,
 } from './trabajadora.validation';
 
 const router = Router();
@@ -80,6 +82,19 @@ router.patch(
   authorizeRoles('ADMIN'),
   validate(cambiarEstadoTrabajadoraSchema),
   cambiarEstadoTrabajadora
+);
+
+/**
+ * @route   DELETE /api/trabajadoras/:id
+ * @desc    Eliminar (soft delete) una trabajadora
+ * @access  Private - Solo ADMIN
+ */
+router.delete(
+  '/:id',
+  authenticate,
+  authorizeRoles('ADMIN'),
+  validate(eliminarTrabajadoraSchema),
+  eliminarTrabajadora
 );
 
 export default router;

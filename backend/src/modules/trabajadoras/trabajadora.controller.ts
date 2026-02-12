@@ -109,3 +109,24 @@ export const cambiarEstadoTrabajadora = async (
     next(error);
   }
 };
+
+/**
+ * Controlador para eliminar (soft delete) una trabajadora
+ */
+export const eliminarTrabajadora = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const result = await service.cambiarEstado(id as string, false);
+
+    res.status(200).json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

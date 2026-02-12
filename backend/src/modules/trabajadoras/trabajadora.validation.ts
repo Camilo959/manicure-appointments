@@ -1,65 +1,72 @@
 import { z } from 'zod';
 
 /**
- * Schema para crear una trabajadora
+ * Validaciones reutilizables
+ */
+
+const nombreValidation = z
+  .string({ message: 'El nombre es obligatorio' })
+  .min(3, 'El nombre debe tener al menos 3 caracteres')
+  .max(100, 'El nombre no puede superar 100 caracteres')
+  .trim()
+  .refine((val) => val.length > 0, 'El nombre no puede estar vacío');
+
+const emailValidation = z
+  .string({ message: 'El email es obligatorio' })
+  .email('Email inválido')
+  .trim()
+  .toLowerCase()
+  .refine((val) => val.length > 0, 'El email no puede estar vacío');
+
+const passwordValidation = z
+  .string({ message: 'La contraseña es obligatoria' })
+  .min(8, 'La contraseña debe tener al menos 8 caracteres')
+  .max(72, 'La contraseña no puede superar 72 caracteres')
+  .refine(
+    (val) => /[A-Z]/.test(val),
+    'La contraseña debe contener al menos una mayúscula'
+  )
+  .refine(
+    (val) => /[a-z]/.test(val),
+    'La contraseña debe contener al menos una minúscula'
+  )
+  .refine(
+    (val) => /[0-9]/.test(val),
+    'La contraseña debe contener al menos un número'
+  );
+
+const uuidValidation = z
+  .string({ message: 'ID es obligatorio' })
+  .uuid('ID de trabajadora inválido');
+
+/**
+ * Schema para crear trabajadora
  */
 export const crearTrabajadoraSchema = z.object({
   body: z.object({
-    nombre: z
-      .string({ message: 'El nombre es obligatorio' })
-      .min(3, 'El nombre debe tener al menos 3 caracteres')
-      .max(100, 'El nombre no puede superar 100 caracteres')
-      .trim(),
-    email: z
-      .string({ message: 'El email es obligatorio' })
-      .email('Email inválido')
-      .trim()
-      .toLowerCase(),
-    password: z
-      .string({ message: 'La contraseña es obligatoria' })
-      .min(6, 'La contraseña debe tener al menos 6 caracteres')
-      .max(50, 'La contraseña no puede superar 50 caracteres'),
+    nombre: nombreValidation,
+    email: emailValidation,
+    password: passwordValidation,
   }),
 });
 
 /**
- * Schema para actualizar una trabajadora
+ * Schema para actualizar trabajadora
  */
 export const actualizarTrabajadoraSchema = z.object({
   params: z.object({
-    id: z.string().uuid('ID de trabajadora inválido'),
+    id: uuidValidation,
   }),
-  body: z.object({
-    nombre: z
-      .string()
-      .min(3, 'El nombre debe tener al menos 3 caracteres')
-      .max(100, 'El nombre no puede superar 100 caracteres')
-      .trim()
-      .optional(),
-    email: z
-      .string()
-      .email('Email inválido')
-      .trim()
-      .toLowerCase()
-      .optional(),
-    password: z
-      .string()
-      .min(6, 'La contraseña debe tener al menos 6 caracteres')
-      .max(50, 'La contraseña no puede superar 50 caracteres')
-      .optional(),
-  }),
-});
-
-/**
- * Schema para cambiar estado de trabajadora
- */
-export const cambiarEstadoTrabajadoraSchema = z.object({
-  params: z.object({
-    id: z.string().uuid('ID de trabajadora inválido'),
-  }),
-  body: z.object({
-    activa: z.boolean({ message: 'El estado activa es obligatorio' }),
-  }),
+  body: z
+    .object({
+      nombre: nombreValidation.optional(),
+      email: emailValidation.optional(),
+      password: passwordValidation.optional(),
+    })
+    .refine(
+      (data) => Object.keys(data).length > 0,
+      'Debe proporcionar al menos un campo para actualizar'
+    ),
 });
 
 /**
@@ -67,10 +74,34 @@ export const cambiarEstadoTrabajadoraSchema = z.object({
  */
 export const obtenerTrabajadoraPorIdSchema = z.object({
   params: z.object({
-    id: z.string().uuid('ID de trabajadora inválido'),
+    id: uuidValidation,
   }),
 });
 
+/**
+ * Schema para eliminar (soft delete) trabajadora
+ */
+export const eliminarTrabajadoraSchema = z.object({
+  params: z.object({
+    id: uuidValidation,
+  }),
+});
+
+/**
+ * Schema para cambiar estado explícitamente (alternativa al DELETE)
+ */
+export const cambiarEstadoTrabajadoraSchema = z.object({
+  params: z.object({
+    id: uuidValidation,
+  }),
+  body: z.object({
+    activa: z.boolean({ message: 'El estado activa es obligatorio' }),
+  }),
+});
+
+/**
+ * Type exports
+ */
 export type CrearTrabajadoraInput = z.infer<typeof crearTrabajadoraSchema>['body'];
 export type ActualizarTrabajadoraInput = z.infer<typeof actualizarTrabajadoraSchema>['body'];
 export type CambiarEstadoTrabajadoraInput = z.infer<typeof cambiarEstadoTrabajadoraSchema>['body'];
