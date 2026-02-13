@@ -13,6 +13,7 @@ export class ServicioRepository {
       data: {
         nombre: data.nombre,
         duracionMinutos: data.duracionMinutos,
+        precio: data.precio,
         activo: true,
       },
     });

@@ -1,13 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 
-import { errorMiddleware } from './middlewares/error.middleware';
+import { errorHandler } from './middlewares/error.middleware';
 
 // Rutas
 import authRoutes from './modules/auth/auth.routes';
 import servicioRoutes from './modules/servicios/servicio.routes';
 import disponibilidadRoutes from './modules/citas/disponibilidad.routes';
 import trabajadoraRoutes from './modules/trabajadoras/trabajadora.routes';
+import citaRoutes from './modules/citas/cita.routes';
 
 export const app = express();
 
@@ -24,8 +25,9 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/trabajadoras', trabajadoraRoutes);
-app.use('/api/citas', disponibilidadRoutes);
+app.use('/api/disponibilidad', disponibilidadRoutes);
+app.use('/api/citas', citaRoutes);
 
 
 // Middleware de errores (SIEMPRE al final)
-app.use(errorMiddleware);
+app.use(errorHandler);

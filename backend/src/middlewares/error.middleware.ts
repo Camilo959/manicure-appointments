@@ -7,6 +7,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config/env';
+import { CitaError } from '../modules/citas/cita.errors';
+import { TrabajadoraError } from '../modules/trabajadoras/trabajadora.errors';
 
 /**
  * Clase base para errores de la aplicación
@@ -87,6 +89,28 @@ export function errorHandler(
 		return;
 	}
 
+	// Errores de Citas
+	if (error instanceof CitaError) {
+		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+			error: error.code,
+			...(config.nodeEnv === 'development' && { stack: error.stack }),
+		});
+		return;
+	}
+
+	// Errores de Trabajadoras
+	if (error instanceof TrabajadoraError) {
+		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+			error: error.code,
+			...(config.nodeEnv === 'development' && { stack: error.stack }),
+		});
+		return;
+	}
+
 	// Errores de Prisma
 	if (error.name === 'PrismaClientKnownRequestError') {
 		const prismaError = error as any;
@@ -107,6 +131,26 @@ export function errorHandler(
 				success: false,
 				message: 'Recurso no encontrado',
 				error: 'NOT_FOUND',
+			});
+			return;
+		}
+
+		// Timeout de transacción
+		if (prismaError.code === 'P2024') {
+			res.status(408).json({
+				success: false,
+				message: 'La operación tomó demasiado tiempo. Intente nuevamente.',
+				error: 'TRANSACTION_TIMEOUT',
+			});
+			return;
+		}
+
+		// Serialization failure (race condition detectada)
+		if (prismaError.code === 'P2034') {
+			res.status(409).json({
+				success: false,
+				message: 'Otro usuario modificó los datos simultáneamente. Intente nuevamente.',
+				error: 'CONFLICT',
 			});
 			return;
 		}
