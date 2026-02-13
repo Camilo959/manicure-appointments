@@ -1,17 +1,22 @@
-import type { Servicio } from '../../../generated/prisma/client';
+import type { Prisma } from '../../../generated/prisma/client';
 import { parse, format, addMinutes, isAfter, isBefore, startOfDay } from 'date-fns';
+
+type ServicioCalculo = {
+  duracionMinutos: number;
+  precio: Prisma.Decimal;
+};
 
 /**
  * Calcula la duración total de los servicios
  */
-export function calcularDuracionTotal(servicios: Servicio[]): number {
+export function calcularDuracionTotal(servicios: ServicioCalculo[]): number {
   return servicios.reduce((total, servicio) => total + servicio.duracionMinutos, 0);
 }
 
 /**
  * Calcula el precio total de los servicios
  */
-export function calcularPrecioTotal(servicios: Servicio[]): number {
+export function calcularPrecioTotal(servicios: ServicioCalculo[]): number {
   return servicios.reduce((total, servicio) => total + Number(servicio.precio), 0);
 }
 
