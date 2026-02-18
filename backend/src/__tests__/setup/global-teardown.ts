@@ -1,7 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
+import prisma from '../../../src/config/prisma'; // ajusta ruta
 
-const prisma = new PrismaClient();
-
-module.exports = async () => {
-	await prisma.$disconnect();
-};
+export default async function globalTeardown() {
+  await prisma.$disconnect();
+}
