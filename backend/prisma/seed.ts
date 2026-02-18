@@ -114,13 +114,13 @@ async function main() {
     console.log('💼 Creando servicios...');
 
     const servicios = [
-      { nombre: 'Manicure Básico', duracionMinutos: 45 },
-      { nombre: 'Manicure con Gel', duracionMinutos: 60 },
-      { nombre: 'Pedicure Básico', duracionMinutos: 60 },
-      { nombre: 'Pedicure con Gel', duracionMinutos: 75 },
-      { nombre: 'Uñas Acrílicas', duracionMinutos: 90 },
-      { nombre: 'Diseño de Uñas', duracionMinutos: 30 },
-      { nombre: 'Retiro de Gel', duracionMinutos: 30 },
+      { nombre: 'Manicure Básico', duracionMinutos: 45, precio: 25000 },
+      { nombre: 'Manicure con Gel', duracionMinutos: 60, precio: 35000 },
+      { nombre: 'Pedicure Básico', duracionMinutos: 60, precio: 30000 },
+      { nombre: 'Pedicure con Gel', duracionMinutos: 75, precio: 40000 },
+      { nombre: 'Uñas Acrílicas', duracionMinutos: 90, precio: 50000 },
+      { nombre: 'Diseño de Uñas', duracionMinutos: 30, precio: 15000 },
+      { nombre: 'Retiro de Gel', duracionMinutos: 30, precio: 10000 },
     ];
 
     for (const servicio of servicios) {
@@ -133,6 +133,7 @@ async function main() {
           data: {
             nombre: servicio.nombre,
             duracionMinutos: servicio.duracionMinutos,
+            precio: servicio.precio,
             activo: true,
           },
         });
