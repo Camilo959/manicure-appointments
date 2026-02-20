@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('../generated/prisma/client');
 const prisma = new PrismaClient();
 
 beforeAll(async () => {
@@ -6,9 +6,9 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-	await prisma.$executeRaw`TRUNCATE TABLE "Citas" RESTART IDENTITY CASCADE`;
-	await prisma.$executeRaw`TRUNCATE TABLE "Trabajadoras" RESTART IDENTITY CASCADE`;
-	await prisma.$executeRaw`TRUNCATE TABLE "Notificaciones" RESTART IDENTITY CASCADE`;
+	await prisma.$executeRaw`TRUNCATE TABLE "Cita" RESTART IDENTITY CASCADE`;
+	await prisma.$executeRaw`TRUNCATE TABLE "Trabajadora" RESTART IDENTITY CASCADE`;
+	await prisma.$executeRaw`TRUNCATE TABLE "Notificacion" RESTART IDENTITY CASCADE`;
 });
 
 afterAll(async () => {

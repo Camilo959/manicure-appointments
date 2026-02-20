@@ -31,3 +31,5 @@ app.use('/api/citas', citaRoutes);
 
 // Middleware de errores (SIEMPRE al final)
 app.use(errorHandler);
+
+export default app;

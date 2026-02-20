@@ -15,6 +15,9 @@ export const crearServicioSchema = z.object({
       .int('La duración debe ser un número entero')
       .positive('La duración debe ser mayor a 0')
       .max(480, 'La duración no puede superar 480 minutos (8 horas)'),
+    precio: z
+      .number({ message: 'El precio es obligatorio' })
+      .positive('El precio debe ser mayor a 0'),
   }),
 });
 
@@ -37,6 +40,10 @@ export const actualizarServicioSchema = z.object({
       .int('La duración debe ser un número entero')
       .positive('La duración debe ser mayor a 0')
       .max(480, 'La duración no puede superar 480 minutos (8 horas)')
+      .optional(),
+    precio: z
+      .number()
+      .positive('El precio debe ser mayor a 0')
       .optional(),
   }),
 });
