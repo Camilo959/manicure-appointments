@@ -1,5 +1,5 @@
-const request = require('supertest');
-const app = require('../../../app'); // Asegúrate de que la ruta sea correcta
+import request from 'supertest';
+import app from '../../../app';
 
 describe('Auth Integration Tests', () => {
     it('should create a new user and return a token', async () => {
