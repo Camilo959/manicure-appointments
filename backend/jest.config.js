@@ -15,4 +15,7 @@ module.exports = {
       'ts-jest',
     ],
   },
+    transformIgnorePatterns: [
+    "node_modules/(?!(uuid)/)"
+  ],
 };
