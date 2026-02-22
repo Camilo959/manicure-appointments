@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../../../app'); // Adjust the path to your Express app
-const { setupDatabase, teardownDatabase } = require('../../test-setup');
+const { setupDatabase, teardownDatabase } = require('../../../test-setup');
 
 beforeAll(async () => {
     await setupDatabase();

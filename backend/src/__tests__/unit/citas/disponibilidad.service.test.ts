@@ -1,4 +1,4 @@
-const { calcularDisponibilidad } = require('../../../services/disponibilidad.service');
+const { calcularDisponibilidad } = require('../../../../src/modules/notificaciones/notificaciones.service');
 
 describe('calcularDisponibilidad', () => {
     test('debería retornar disponibilidad correcta para entradas válidas', () => {
