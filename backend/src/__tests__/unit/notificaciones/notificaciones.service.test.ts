@@ -4,7 +4,7 @@ const { NotificacionesService } = require('../../../notificaciones/notificacione
 jest.mock('nodemailer');
 
 describe('NotificacionesService', () => {
-	let notificacionesService;
+	let notificacionesService: InstanceType<typeof NotificacionesService>;
 
 	beforeEach(() => {
 		notificacionesService = new NotificacionesService();
