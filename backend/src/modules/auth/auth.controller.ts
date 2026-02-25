@@ -6,7 +6,7 @@
 
 import { Request, Response } from 'express';
 import { authService } from './auth.service';
-import { loginSchema, validate } from './auth.validation';
+import { loginSchema, registerSchema, validate } from './auth.validation';
 
 /**
  * Controlador para operaciones de autenticación
@@ -53,6 +53,60 @@ export class AuthController {
                     success: false,
                     message: 'Email o contraseña incorrectos',
                     error: 'INVALID_CREDENTIALS',
+                });
+                return;
+            }
+
+            // Error genérico
+            res.status(500).json({
+                success: false,
+                message: 'Error interno del servidor',
+                error: 'INTERNAL_SERVER_ERROR',
+            });
+        }
+    }
+
+    /**
+     * POST /auth/register
+     * Registrar un nuevo usuario
+     */
+    async register(req: Request, res: Response): Promise<void> {
+        try {
+            // 1. Validar datos de entrada
+            const validatedData = validate(registerSchema, req.body);
+
+            // 2. Ejecutar registro
+            const result = await authService.register(validatedData);
+
+            // 3. Responder con éxito
+            res.status(201).json({
+                success: true,
+                message: 'Usuario registrado exitosamente',
+                data: result,
+            });
+
+        } catch (error) {
+            // Manejar errores
+            console.error('❌ Error en registro:', error);
+
+            // Error de validación
+            if (error && typeof error === 'object' && 'errors' in error) {
+                res.status(400).json({
+                    success: false,
+                    message: 'Error de validación',
+                    errors: error.errors,
+                });
+                return;
+            }
+
+            // Error de email duplicado
+            const errorMessage = error instanceof Error ? error.message : 'Error al registrar usuario';
+
+            if (errorMessage.includes('ya está registrado')) {
+                res.status(409).json({
+                    success: false,
+                    message: 'El email ya está registrado',
+                    error: 'EMAIL_ALREADY_EXISTS',
                 });
                 return;
             }

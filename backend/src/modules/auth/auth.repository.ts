@@ -135,6 +135,36 @@ export class AuthRepository {
             throw new Error('Error al contar usuarios');
         }
     }
+
+    /**
+     * Crear un nuevo usuario
+     * 
+     * @param data - Datos del usuario a crear
+     * @returns Usuario creado
+     */
+    async createUser(data: {
+        nombre: string;
+        email: string;
+        password: string;
+        rol: Rol;
+    }): Promise<User> {
+        try {
+            const user = await prisma.user.create({
+                data: {
+                    nombre: data.nombre,
+                    email: data.email,
+                    password: data.password,
+                    rol: data.rol,
+                    activo: true,
+                },
+            });
+
+            return user;
+        } catch (error) {
+            console.error('❌ Error creando usuario:', error);
+            throw new Error('Error al crear usuario');
+        }
+    }
 }
 
 // Exportar instancia única del repositorio

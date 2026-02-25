@@ -31,6 +31,48 @@ export const loginSchema = z.object({
 export type LoginInput = z.infer<typeof loginSchema>;
 
 /**
+ * Schema de validación para registro de usuario
+ */
+export const registerSchema = z.object({
+    nombre: z
+        .string({
+            message: 'El nombre es requerido',
+        })
+        .min(2, 'El nombre debe tener al menos 2 caracteres')
+        .max(100, 'El nombre no puede exceder 100 caracteres')
+        .trim(),
+
+    email: z
+        .string({
+            message: 'El email es requerido',
+        })
+        .email({ message: 'El formato del email no es válido' })
+        .toLowerCase()
+        .trim(),
+
+    password: z
+        .string({
+            message: 'La contraseña es requerida',
+        })
+        .min(8, 'La contraseña debe tener al menos 8 caracteres')
+        .regex(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+            'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
+        ),
+
+    rol: z
+        .enum(['ADMIN', 'TRABAJADORA'], {
+            message: 'El rol debe ser ADMIN o TRABAJADORA',
+        })
+        .default('TRABAJADORA'),
+});
+
+/**
+ * Tipo inferido del schema de registro
+ */
+export type RegisterInput = z.infer<typeof registerSchema>;
+
+/**
  * Schema de validación para cambio de contraseña (para futuro)
  */
 export const changePasswordSchema = z.object({

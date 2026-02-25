@@ -7,13 +7,26 @@
 import bcrypt from 'bcryptjs';
 import { authRepository } from './auth.repository';
 import { generateToken } from '../../utils/token.utils';
-import { LoginInput } from './auth.validation';
+import { LoginInput, RegisterInput } from './auth.validation';
 import config from '../../config/env';
 
 /**
  * Respuesta exitosa de login
  */
 export interface LoginResponse {
+    user: {
+        id: string;
+        nombre: string;
+        email: string;
+        rol: 'ADMIN' | 'TRABAJADORA';
+    };
+    token: string;
+}
+
+/**
+ * Respuesta exitosa de registro
+ */
+export interface RegisterResponse {
     user: {
         id: string;
         nombre: string;
@@ -58,6 +71,48 @@ export class AuthService {
         });
 
         // 4. Retornar información del usuario y token
+        return {
+            user: {
+                id: user.id,
+                nombre: user.nombre,
+                email: user.email,
+                rol: user.rol,
+            },
+            token,
+        };
+    }
+
+    /**
+     * Registrar un nuevo usuario
+     * 
+     * @param userData - Datos del nuevo usuario
+     * @returns Información del usuario y token JWT
+     * @throws Error si el email ya está en uso
+     */
+    async register(userData: RegisterInput): Promise<RegisterResponse> {
+        const { nombre, email, password, rol } = userData;
+
+        // 1. Validar que el email no esté en uso
+        await this.validateEmailAvailable(email);
+
+        // 2. Encriptar contraseña
+        const hashedPassword = await this.hashPassword(password);
+
+        // 3. Crear usuario en la base de datos
+        const user = await authRepository.createUser({
+            nombre,
+            email,
+            password: hashedPassword,
+            rol,
+        });
+
+        // 4. Generar token JWT
+        const token = generateToken({
+            userId: user.id,
+            rol: user.rol,
+        });
+
+        // 5. Retornar información del usuario y token
         return {
             user: {
                 id: user.id,

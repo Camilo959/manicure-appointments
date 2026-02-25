@@ -38,6 +38,35 @@ const router = Router();
 router.post('/login', (req, res) => authController.login(req, res));
 
 /**
+ * POST /auth/register
+ * Registrar un nuevo usuario
+ * 
+ * Body:
+ * {
+ *   "nombre": "María García",
+ *   "email": "maria@example.com",
+ *   "password": "Password123",
+ *   "rol": "TRABAJADORA"
+ * }
+ * 
+ * Response:
+ * {
+ *   "success": true,
+ *   "message": "Usuario registrado exitosamente",
+ *   "data": {
+ *     "user": {
+ *       "id": "uuid",
+ *       "nombre": "María García",
+ *       "email": "maria@example.com",
+ *       "rol": "TRABAJADORA"
+ *     },
+ *     "token": "jwt_token_here"
+ *   }
+ * }
+ */
+router.post('/register', (req, res) => authController.register(req, res));
+
+/**
  * GET /auth/me
  * Obtener información del usuario autenticado
  * 
