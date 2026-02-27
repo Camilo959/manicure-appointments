@@ -2,6 +2,7 @@ import { PrismaClient } from './generated/prisma/client';
 import { app } from './src/server'; // Adjust the import based on your app structure
 import request from 'supertest';
 import { PrismaPg } from '@prisma/adapter-pg'
+import "dotenv/config";
 
 const connectionString = `${process.env.DATABASE_URL_TEST}`
 
