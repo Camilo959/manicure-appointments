@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const { NotificacionesService } = require('../../../notificaciones/notificaciones.service');
+const { NotificacionesService } = require('../../../modules/notificaciones/notificaciones.service');
 
 jest.mock('nodemailer');
 
