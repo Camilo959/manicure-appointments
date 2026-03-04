@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from './generated/prisma/client';
 import { app } from './src/app'; // Adjust the import based on your app structure
 import request from 'supertest';
 import { PrismaPg } from '@prisma/adapter-pg'

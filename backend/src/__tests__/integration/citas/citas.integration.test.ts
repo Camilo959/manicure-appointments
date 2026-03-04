@@ -1,14 +1,5 @@
-const request = require('supertest');
-const app = require('../../../app'); // Adjust the path to your Express app
-const { setupDatabase, teardownDatabase } = require('../../../test-setup');
-
-beforeAll(async () => {
-    await setupDatabase();
-});
-
-afterAll(async () => {
-    await teardownDatabase();
-});
+import request from 'supertest';
+import app from '../../../app'; // Ajusta si app no es default export
 
 test('should create a new appointment', async () => {
     const response = await request(app)

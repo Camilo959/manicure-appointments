@@ -6,8 +6,9 @@ describe('Auth Integration Tests', () => {
         const response = await request(app)
             .post('/api/auth/register')
             .send({
+                nombre: 'Test User',
                 email: 'test@example.com',
-                password: 'password123'
+                password: 'Password123'
             });
 
         expect(response.status).toBe(201);
@@ -18,8 +19,9 @@ describe('Auth Integration Tests', () => {
         const response = await request(app)
             .post('/api/auth/login')
             .send({
+                nombre: 'Test User',
                 email: 'test@example.com',
-                password: 'password123'
+                password: 'Password123'
             });
 
         expect(response.status).toBe(200);
