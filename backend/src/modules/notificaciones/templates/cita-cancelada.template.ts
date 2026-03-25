@@ -6,7 +6,7 @@
  * Email enviado cuando se cancela una cita
  */
 
-import type { NotificacionCitaCancelada } from '../notificaciones.types';
+import type { InputCitaCancelada } from '../notificaciones.types';
 import {
   escaparHTML,
   generarListaServicios,
@@ -15,7 +15,12 @@ import {
 /**
  * Genera el HTML para el email de cita cancelada
  */
-export function generarEmailCitaCancelada(datos: NotificacionCitaCancelada): string {
+type DatosCitaCanceladaTemplate = InputCitaCancelada & {
+  fechaFormateada: string;
+  hora: string;
+};
+
+export function generarEmailCitaCancelada(datos: DatosCitaCanceladaTemplate): string {
   const nombreCliente = escaparHTML(datos.nombreDestinatario);
   const nombreTrabajadora = escaparHTML(datos.nombreTrabajadora);
   const motivo = datos.motivo ? escaparHTML(datos.motivo) : null;

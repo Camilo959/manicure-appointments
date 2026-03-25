@@ -6,7 +6,7 @@
  * Email enviado cuando se confirma una cita previamente agendada
  */
 
-import type { NotificacionCitaConfirmada } from '../notificaciones.types';
+import type { InputCitaConfirmada } from '../notificaciones.types';
 import {
   escaparHTML,
   formatearPrecio,
@@ -17,7 +17,13 @@ import {
 /**
  * Genera el HTML para el email de cita confirmada
  */
-export function generarEmailCitaConfirmada(datos: NotificacionCitaConfirmada): string {
+type DatosCitaConfirmadaTemplate = InputCitaConfirmada & {
+  fechaFormateada: string;
+  hora: string;
+  linkCancelacion: string;
+};
+
+export function generarEmailCitaConfirmada(datos: DatosCitaConfirmadaTemplate): string {
   const nombreCliente = escaparHTML(datos.nombreDestinatario);
   const nombreTrabajadora = escaparHTML(datos.nombreTrabajadora);
 

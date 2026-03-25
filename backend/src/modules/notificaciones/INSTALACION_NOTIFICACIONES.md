@@ -105,9 +105,8 @@ npm run dev
 ## 📚 Documentación Completa
 
 - [README Principal](./backend/src/modules/notificaciones/README.md)
-- [Guía de Instalación](./backend/src/modules/notificaciones/INSTALACION.ts)
+- [Guía de Instalación](./backend/src/modules/notificaciones/INSTALACION.md)
 - [Ejemplos de Integración](./backend/src/modules/citas/EJEMPLOS_INTEGRACION_NOTIFICACIONES.ts)
-- [Resumen Ejecutivo](./backend/src/modules/notificaciones/RESUMEN_EJECUTIVO.md)
 
 ---
 

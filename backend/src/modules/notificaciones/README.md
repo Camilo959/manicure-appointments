@@ -12,6 +12,7 @@ notificaciones/
 ├── notificaciones.types.ts            # Tipos e interfaces TypeScript
 ├── notificaciones.utils.ts            # Utilidades de formateo
 ├── notificaciones.service.ts          # Servicio principal (Singleton)
+├── resend.provider.ts                 # Adaptador de Resend a EmailProvider
 ├── templates/                         # Plantillas HTML de emails
 │   ├── cita-creada.template.ts        # Email: Cita Creada
 │   ├── cita-confirmada.template.ts    # Email: Cita Confirmada
@@ -33,6 +34,25 @@ notificaciones/
 ❌ **NO** debe manejar lógica de negocio de citas  
 ❌ **NO** debe realizar consultas a la base de datos  
 ❌ **NO** debe propagar errores al módulo de citas  
+
+---
+
+## ✅ Estado de Implementación
+
+### Emails transaccionales
+
+- [x] Cita Creada
+- [x] Cita Confirmada
+- [x] Cita Cancelada
+
+### Capacidades técnicas
+
+- [x] Patrón Singleton para el servicio
+- [x] Manejo de errores sin romper el flujo principal
+- [x] Validación de email
+- [x] Formateo de fechas y precios
+- [x] Plantillas HTML responsive
+- [x] Logging de envíos y errores
 
 ---
 
@@ -69,8 +89,6 @@ const resultado = await notificacionesService.enviarCitaCreada({
   numeroConfirmacion: 'ABC123',
   nombreTrabajadora: 'Ana García',
   fecha: new Date('2026-02-20T14:30:00'),
-  fechaFormateada: '',
-  hora: '',
   servicios: [
     { nombre: 'Manicure', duracion: 30, precio: 15000 },
     { nombre: 'Pedicure', duracion: 45, precio: 20000 },
@@ -78,7 +96,6 @@ const resultado = await notificacionesService.enviarCitaCreada({
   duracionTotal: 75,
   precioTotal: 35000,
   tokenCancelacion: 'abc-def-ghi',
-  linkCancelacion: '',
 });
 
 if (resultado.exito) {
@@ -249,8 +266,8 @@ El servicio **NUNCA** propaga errores al módulo de citas:
 // ✅ Dentro del servicio
 private async enviarEmail(...): Promise<ResultadoEnvio> {
   try {
-    const resultado = await this.resend.emails.send(...);
-    return { exito: true, idMensaje: resultado.data?.id };
+    const resultado = await this.emailProvider.send(...);
+    return { exito: true, idMensaje: resultado.id };
   } catch (error) {
     // Log pero no lanzar error
     console.error('Error al enviar email:', error);

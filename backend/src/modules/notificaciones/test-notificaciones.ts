@@ -12,9 +12,9 @@
 
 import { notificacionesService } from './index';
 import type {
-  NotificacionCitaCreada,
-  NotificacionCitaConfirmada,
-  NotificacionCitaCancelada,
+  InputCitaCreada,
+  InputCitaConfirmada,
+  InputCitaCancelada,
 } from './notificaciones.types';
 
 /**
@@ -36,14 +36,12 @@ async function probarCitaCreada() {
   console.log('📧 PRUEBA: Email de Cita Creada');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  const datos: NotificacionCitaCreada = {
+  const datos: InputCitaCreada = {
     destinatario: EMAIL_PRUEBA,
     nombreDestinatario: 'María López',
     numeroConfirmacion: 'TEST-001',
     nombreTrabajadora: 'Ana García',
     fecha: new Date('2026-02-20T14:30:00'),
-    fechaFormateada: '', // Se completa automáticamente
-    hora: '', // Se completa automáticamente
     servicios: [
       {
         nombre: 'Manicure Clásica',
@@ -59,7 +57,6 @@ async function probarCitaCreada() {
     duracionTotal: 75,
     precioTotal: 35000,
     tokenCancelacion: 'test-token-abc-123',
-    linkCancelacion: '', // Se completa automáticamente
   };
 
   try {
@@ -89,14 +86,12 @@ async function probarCitaConfirmada() {
   console.log('📧 PRUEBA: Email de Cita Confirmada');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  const datos: NotificacionCitaConfirmada = {
+  const datos: InputCitaConfirmada = {
     destinatario: EMAIL_PRUEBA,
     nombreDestinatario: 'María López',
     numeroConfirmacion: 'TEST-002',
     nombreTrabajadora: 'Carla Sánchez',
     fecha: new Date('2026-02-25T16:00:00'),
-    fechaFormateada: '',
-    hora: '',
     servicios: [
       {
         nombre: 'Uñas Acrílicas',
@@ -107,7 +102,6 @@ async function probarCitaConfirmada() {
     duracionTotal: 90,
     precioTotal: 35000,
     tokenCancelacion: 'test-token-def-456',
-    linkCancelacion: '',
   };
 
   try {
@@ -137,14 +131,12 @@ async function probarCitaCancelada() {
   console.log('📧 PRUEBA: Email de Cita Cancelada');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-  const datos: NotificacionCitaCancelada = {
+  const datos: InputCitaCancelada = {
     destinatario: EMAIL_PRUEBA,
     nombreDestinatario: 'María López',
     numeroConfirmacion: 'TEST-003',
     nombreTrabajadora: 'Daniela Rojas',
     fecha: new Date('2026-03-01T10:00:00'),
-    fechaFormateada: '',
-    hora: '',
     servicios: [
       {
         nombre: 'Manicure + Diseño',

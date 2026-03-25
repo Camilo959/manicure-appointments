@@ -6,7 +6,7 @@
  * Email enviado cuando un cliente agenda una nueva cita
  */
 
-import type { NotificacionCitaCreada } from '../notificaciones.types';
+import type { InputCitaCreada } from '../notificaciones.types';
 import {
   escaparHTML,
   formatearPrecio,
@@ -17,7 +17,13 @@ import {
 /**
  * Genera el HTML para el email de cita creada
  */
-export function generarEmailCitaCreada(datos: NotificacionCitaCreada): string {
+type DatosCitaCreadaTemplate = InputCitaCreada & {
+  fechaFormateada: string;
+  hora: string;
+  linkCancelacion: string;
+};
+
+export function generarEmailCitaCreada(datos: DatosCitaCreadaTemplate): string {
   const nombreCliente = escaparHTML(datos.nombreDestinatario);
   const nombreTrabajadora = escaparHTML(datos.nombreTrabajadora);
 

@@ -8,17 +8,16 @@
 
 // Exportar servicio principal (singleton)
 export { notificacionesService } from './notificaciones.service';
+export { TipoNotificacion } from './notificaciones.types';
 
 // Exportar tipos (para uso en otros módulos)
 export type {
-  TipoNotificacion,
   NotificacionBase,
   ServicioNotificacion,
-  NotificacionCitaCreada,
-  NotificacionCitaConfirmada,
-  NotificacionCitaCancelada,
+  InputCitaCreada,
+  InputCitaConfirmada,
+  InputCitaCancelada,
   ResultadoEnvio,
-  ConfiguracionEmail,
 } from './notificaciones.types';
 
 // Exportar utilidades (por si se necesitan en otros módulos)

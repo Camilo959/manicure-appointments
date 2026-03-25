@@ -18,15 +18,18 @@
  * - Logging obligatorio para auditoría
  */
 
-import { Resend } from 'resend';
 import config from '../../config/env';
+import { TipoNotificacion } from './notificaciones.types';
 import type {
-  NotificacionCitaCreada,
-  NotificacionCitaConfirmada,
-  NotificacionCitaCancelada,
+  NotificacionBase,
+  InputCitaCreada,
+  InputCitaConfirmada,
+  InputCitaCancelada,
   ResultadoEnvio,
   ConfiguracionEmail,
+  EmailProvider,
 } from './notificaciones.types';
+import { ResendEmailProvider } from './resend.provider';
 import { generarEmailCitaCreada } from './templates/cita-creada.template';
 import { generarEmailCitaConfirmada } from './templates/cita-confirmada.template';
 import { generarEmailCitaCancelada } from './templates/cita-cancelada.template';
@@ -36,25 +39,49 @@ import {
   generarLinkCancelacion,
 } from './notificaciones.utils';
 
+type CitaCreadaEnriquecida = InputCitaCreada & {
+  fechaFormateada: string;
+  hora: string;
+  linkCancelacion: string;
+};
+
+type CitaConfirmadaEnriquecida = InputCitaConfirmada & {
+  fechaFormateada: string;
+  hora: string;
+  linkCancelacion: string;
+};
+
+type CitaCanceladaEnriquecida = InputCitaCancelada & {
+  fechaFormateada: string;
+  hora: string;
+};
+
 /**
  * Servicio de Notificaciones
  * 
  * Patrón Singleton para reutilizar la instancia de Resend
  */
 export class NotificacionesService {
-  private resend: Resend | null = null;
+  private emailProvider: EmailProvider | null = null;
   private habilitado: boolean = false;
   private readonly remitentePorDefecto: string = 'Manicure Spa <onboarding@resend.dev>'; // Cambiar en producción
 
-  constructor() {
-    this.inicializar();
+  constructor(emailProvider?: EmailProvider) {
+    this.inicializar(emailProvider);
   }
 
   /**
    * Inicializa el cliente de Resend
    * Si no hay API key, el servicio queda deshabilitado pero no falla
    */
-  private inicializar(): void {
+  private inicializar(emailProvider?: EmailProvider): void {
+    if (emailProvider) {
+      this.emailProvider = emailProvider;
+      this.habilitado = true;
+      console.log('✅ Servicio de notificaciones inicializado correctamente');
+      return;
+    }
+
     const apiKey = config.resend.apiKey;
 
     if (!apiKey || apiKey.trim() === '') {
@@ -64,7 +91,7 @@ export class NotificacionesService {
     }
 
     try {
-      this.resend = new Resend(apiKey);
+      this.emailProvider = new ResendEmailProvider(apiKey);
       this.habilitado = true;
       console.log('✅ Servicio de notificaciones inicializado correctamente');
     } catch (error) {
@@ -78,29 +105,25 @@ export class NotificacionesService {
    * ENVÍO DE NOTIFICACIÓN: CITA CREADA
    * ═══════════════════════════════════════════════════════
    */
-  async enviarCitaCreada(datos: NotificacionCitaCreada): Promise<ResultadoEnvio> {
-    // Validar que el cliente tenga email
-    if (!datos.destinatario || !this.esEmailValido(datos.destinatario)) {
-      return this.crearResultadoFallido('Email del destinatario no válido');
-    }
-
-    // Enriquecer datos con información formateada
-    const datosEnriquecidos: NotificacionCitaCreada = {
-      ...datos,
-      fechaFormateada: formatearFechaCompleta(datos.fecha),
-      hora: extraerHora(datos.fecha),
-      linkCancelacion: generarLinkCancelacion(datos.tokenCancelacion),
-    };
-
-    // Generar configuración del email
-    const config: ConfiguracionEmail = {
-      remitente: this.remitentePorDefecto,
-      asunto: `✅ Cita Agendada - Confirmación ${datos.numeroConfirmacion}`,
-      html: generarEmailCitaCreada(datosEnriquecidos),
-    };
-
-    // Enviar
-    return await this.enviarEmail(datos.destinatario, config, 'CITA_CREADA');
+  async enviarCitaCreada(datos: InputCitaCreada): Promise<ResultadoEnvio> {
+    return await this.procesarNotificacion<InputCitaCreada, CitaCreadaEnriquecida>(
+      datos,
+      (input) => ({
+        ...input,
+        fechaFormateada: formatearFechaCompleta(input.fecha),
+        hora: extraerHora(input.fecha),
+        linkCancelacion: generarLinkCancelacion(input.tokenCancelacion),
+      }),
+      (datosEnriquecidos) => {
+        const emailConfig: ConfiguracionEmail = {
+          remitente: this.remitentePorDefecto,
+          asunto: `✅ Cita Agendada - Confirmación ${datosEnriquecidos.numeroConfirmacion}`,
+          html: generarEmailCitaCreada(datosEnriquecidos),
+        };
+        return emailConfig;
+      },
+      TipoNotificacion.CITA_CREADA
+    );
   }
 
   /**
@@ -108,29 +131,25 @@ export class NotificacionesService {
    * ENVÍO DE NOTIFICACIÓN: CITA CONFIRMADA
    * ═══════════════════════════════════════════════════════
    */
-  async enviarCitaConfirmada(datos: NotificacionCitaConfirmada): Promise<ResultadoEnvio> {
-    // Validar que el cliente tenga email
-    if (!datos.destinatario || !this.esEmailValido(datos.destinatario)) {
-      return this.crearResultadoFallido('Email del destinatario no válido');
-    }
-
-    // Enriquecer datos
-    const datosEnriquecidos: NotificacionCitaConfirmada = {
-      ...datos,
-      fechaFormateada: formatearFechaCompleta(datos.fecha),
-      hora: extraerHora(datos.fecha),
-      linkCancelacion: generarLinkCancelacion(datos.tokenCancelacion),
-    };
-
-    // Generar configuración del email
-    const config: ConfiguracionEmail = {
-      remitente: this.remitentePorDefecto,
-      asunto: `✔️ Cita Confirmada - ${datos.numeroConfirmacion}`,
-      html: generarEmailCitaConfirmada(datosEnriquecidos),
-    };
-
-    // Enviar
-    return await this.enviarEmail(datos.destinatario, config, 'CITA_CONFIRMADA');
+  async enviarCitaConfirmada(datos: InputCitaConfirmada): Promise<ResultadoEnvio> {
+    return await this.procesarNotificacion<InputCitaConfirmada, CitaConfirmadaEnriquecida>(
+      datos,
+      (input) => ({
+        ...input,
+        fechaFormateada: formatearFechaCompleta(input.fecha),
+        hora: extraerHora(input.fecha),
+        linkCancelacion: generarLinkCancelacion(input.tokenCancelacion),
+      }),
+      (datosEnriquecidos) => {
+        const emailConfig: ConfiguracionEmail = {
+          remitente: this.remitentePorDefecto,
+          asunto: `✔️ Cita Confirmada - ${datosEnriquecidos.numeroConfirmacion}`,
+          html: generarEmailCitaConfirmada(datosEnriquecidos),
+        };
+        return emailConfig;
+      },
+      TipoNotificacion.CITA_CONFIRMADA
+    );
   }
 
   /**
@@ -138,28 +157,39 @@ export class NotificacionesService {
    * ENVÍO DE NOTIFICACIÓN: CITA CANCELADA
    * ═══════════════════════════════════════════════════════
    */
-  async enviarCitaCancelada(datos: NotificacionCitaCancelada): Promise<ResultadoEnvio> {
-    // Validar que el cliente tenga email
+  async enviarCitaCancelada(datos: InputCitaCancelada): Promise<ResultadoEnvio> {
+    return await this.procesarNotificacion<InputCitaCancelada, CitaCanceladaEnriquecida>(
+      datos,
+      (input) => ({
+        ...input,
+        fechaFormateada: formatearFechaCompleta(input.fecha),
+        hora: extraerHora(input.fecha),
+      }),
+      (datosEnriquecidos) => {
+        const emailConfig: ConfiguracionEmail = {
+          remitente: this.remitentePorDefecto,
+          asunto: `❌ Cita Cancelada - ${datosEnriquecidos.numeroConfirmacion}`,
+          html: generarEmailCitaCancelada(datosEnriquecidos),
+        };
+        return emailConfig;
+      },
+      TipoNotificacion.CITA_CANCELADA
+    );
+  }
+
+  private async procesarNotificacion<TInput extends NotificacionBase, TEnriquecido>(
+    datos: TInput,
+    enriquecerDatos: (input: TInput) => TEnriquecido,
+    construirEmailConfig: (datosEnriquecidos: TEnriquecido) => ConfiguracionEmail,
+    tipo: TipoNotificacion
+  ): Promise<ResultadoEnvio> {
     if (!datos.destinatario || !this.esEmailValido(datos.destinatario)) {
       return this.crearResultadoFallido('Email del destinatario no válido');
     }
 
-    // Enriquecer datos
-    const datosEnriquecidos: NotificacionCitaCancelada = {
-      ...datos,
-      fechaFormateada: formatearFechaCompleta(datos.fecha),
-      hora: extraerHora(datos.fecha),
-    };
-
-    // Generar configuración del email
-    const config: ConfiguracionEmail = {
-      remitente: this.remitentePorDefecto,
-      asunto: `❌ Cita Cancelada - ${datos.numeroConfirmacion}`,
-      html: generarEmailCitaCancelada(datosEnriquecidos),
-    };
-
-    // Enviar
-    return await this.enviarEmail(datos.destinatario, config, 'CITA_CANCELADA');
+    const datosEnriquecidos = enriquecerDatos(datos);
+    const emailConfig = construirEmailConfig(datosEnriquecidos);
+    return await this.enviarEmail(datos.destinatario, emailConfig, tipo);
   }
 
   /**
@@ -172,13 +202,13 @@ export class NotificacionesService {
    */
   private async enviarEmail(
     destinatario: string,
-    config: ConfiguracionEmail,
-    tipo: string
+    emailConfig: ConfiguracionEmail,
+    tipo: TipoNotificacion
   ): Promise<ResultadoEnvio> {
     // Si el servicio está deshabilitado, solo logear
-    if (!this.habilitado || !this.resend) {
+    if (!this.habilitado || !this.emailProvider) {
       console.log(`📧 [SIMULADO] Email ${tipo} a ${destinatario}`);
-      console.log(`   Asunto: ${config.asunto}`);
+      console.log(`   Asunto: ${emailConfig.asunto}`);
       return {
         exito: false,
         error: 'Servicio de notificaciones deshabilitado',
@@ -188,20 +218,20 @@ export class NotificacionesService {
 
     try {
       // Enviar email usando Resend
-      const resultado = await this.resend.emails.send({
-        from: config.remitente,
+      const resultado = await this.emailProvider.send({
+        from: emailConfig.remitente,
         to: destinatario,
-        subject: config.asunto,
-        html: config.html,
+        subject: emailConfig.asunto,
+        html: emailConfig.html,
       });
 
       // Log exitoso
       console.log(`✅ Email ${tipo} enviado a ${destinatario}`);
-      console.log(`   ID: ${resultado.data?.id}`);
+      console.log(`   ID: ${resultado.id}`);
 
       return {
         exito: true,
-        idMensaje: resultado.data?.id,
+        idMensaje: resultado.id,
         timestamp: new Date(),
       };
 
