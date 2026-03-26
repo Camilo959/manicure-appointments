@@ -8,14 +8,13 @@ import {
   ESTADOS_OCUPADOS,
 } from '../../types/disponibilidad.types';
 import {
-  DiaBloqueadoError,
   FechaEnPasadoError,
   FechaFueraDeRangoError,
   ServicioNoDisponibleError,
   ServiciosNoEncontradosError,
   TrabajadoraNoDisponibleError,
 } from './cita.errors';
-import { validarDiaSemana, validarFechaMaxima } from './disponibilidad.validation';
+import { validarFechaMaxima } from './disponibilidad.validation';
 
 export class DisponibilidadService {
   constructor(private prisma: PrismaClient) {}
@@ -34,10 +33,6 @@ export class DisponibilidadService {
     
     if (isBefore(fechaConsulta, hoy)) {
       throw new FechaEnPasadoError();
-    }
-
-    if (!validarDiaSemana(fechaConsulta)) {
-      throw new DiaBloqueadoError(fecha);
     }
 
     if (!validarFechaMaxima(fechaConsulta)) {
