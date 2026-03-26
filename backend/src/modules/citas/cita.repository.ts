@@ -1,8 +1,48 @@
 import prisma from '../../config/prisma';
 import type { Prisma } from '../../../generated/prisma/client';
-import type { ClienteData, DatosCitaCalculados } from './cita.types';
+import type { ClienteData } from './cita.types';
+
+const citaConRelacionesInclude = {
+  cliente: true,
+  trabajadora: {
+    select: {
+      id: true,
+      nombre: true,
+    },
+  },
+  citaServicios: {
+    include: {
+      servicio: {
+        select: {
+          id: true,
+          nombre: true,
+          duracionMinutos: true,
+          precio: true,
+        },
+      },
+    },
+  },
+} as const;
+
+export type CitaConRelaciones = Prisma.CitaGetPayload<{
+  include: typeof citaConRelacionesInclude;
+}>;
 
 export class CitaRepository {
+  async ejecutarEnTransaccion<T>(
+    fn: (tx: Prisma.TransactionClient) => Promise<T>,
+    opciones?: { isolationLevel?: 'Serializable' | 'RepeatableRead'; timeout?: number }
+  ): Promise<T> {
+    if (!opciones) {
+      return prisma.$transaction(fn);
+    }
+
+    return prisma.$transaction(fn, {
+      ...opciones,
+      isolationLevel: opciones.isolationLevel as Prisma.TransactionIsolationLevel | undefined,
+    });
+  }
+
   /**
    * Buscar o crear cliente por teléfono (upsert)
    */
@@ -70,16 +110,51 @@ export class CitaRepository {
   async verificarDiaBloqueado(fecha: Date, tx?: Prisma.TransactionClient): Promise<boolean> {
     const client = tx || prisma;
 
-    const count = await client.diaBloqueado.count({
+    const bloqueado = await client.diaBloqueado.findUnique({
       where: {
-        fecha: {
-          gte: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()),
-          lt: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate() + 1),
-        },
+        fecha: new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()),
       },
     });
 
-    return count > 0;
+    return bloqueado !== null;
+  }
+
+  async buscarCitaPorIdConRelaciones(
+    citaId: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<CitaConRelaciones | null> {
+    const client = tx || prisma;
+
+    return await client.cita.findUnique({
+      where: { id: citaId },
+      include: citaConRelacionesInclude,
+    });
+  }
+
+  async buscarCitaPorToken(
+    tokenCancelacion: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<CitaConRelaciones | null> {
+    const client = tx || prisma;
+
+    return await client.cita.findUnique({
+      where: { tokenCancelacion },
+      include: citaConRelacionesInclude,
+    });
+  }
+
+  async actualizarEstadoCita(
+    citaId: string,
+    estado: Prisma.CitaUpdateInput['estado'],
+    tx?: Prisma.TransactionClient
+  ): Promise<CitaConRelaciones> {
+    const client = tx || prisma;
+
+    return await client.cita.update({
+      where: { id: citaId },
+      data: { estado },
+      include: citaConRelacionesInclude,
+    });
   }
 
   /**
@@ -115,7 +190,6 @@ export class CitaRepository {
       fechaFin: Date;
       duracionTotal: number;
       precioTotal: number;
-      tokenCancelacion: string;
       numeroConfirmacion: string;
       serviciosIds: string[];
     },
@@ -131,7 +205,6 @@ export class CitaRepository {
         duracionTotal: datos.duracionTotal,
         precioTotal: datos.precioTotal,
         estado: 'PENDIENTE',
-        tokenCancelacion: datos.tokenCancelacion,
         numeroConfirmacion: datos.numeroConfirmacion,
       },
       include: {
@@ -166,27 +239,7 @@ export class CitaRepository {
     // 4. Retornar cita con servicios
     return await tx.cita.findUnique({
       where: { id: cita.id },
-      include: {
-        cliente: true,
-        trabajadora: {
-          select: {
-            id: true,
-            nombre: true,
-          },
-        },
-        citaServicios: {
-          include: {
-            servicio: {
-              select: {
-                id: true,
-                nombre: true,
-                duracionMinutos: true,
-                precio: true,
-              },
-            },
-          },
-        },
-      },
+      include: citaConRelacionesInclude,
     });
   }
 

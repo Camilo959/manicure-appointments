@@ -27,3 +27,55 @@ export const agendarCitaPublica = async (
     next(error);
   }
 };
+
+export const confirmarCita = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const citaConfirmada = await service.confirmarCita(String(req.params.id));
+
+    res.status(200).json({
+      success: true,
+      message: 'Cita confirmada exitosamente',
+      data: citaConfirmada,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelarCita = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await service.cancelarCita(String(req.params.id), req.body?.motivo);
+
+    res.status(200).json({
+      success: true,
+      message: 'Cita cancelada exitosamente',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const cancelarCitaPorToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await service.cancelarCitaPorToken(String(req.params.token));
+
+    res.status(200).json({
+      success: true,
+      message: 'Cita cancelada exitosamente',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

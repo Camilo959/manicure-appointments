@@ -1,7 +1,17 @@
 import { Router } from 'express';
 import { validate } from '../../middlewares/validate.middleware';
-import { agendarCitaPublica } from './cita.controller';
-import { agendarCitaPublicaSchema } from './cita.validation';
+import {
+  agendarCitaPublica,
+  cancelarCita,
+  cancelarCitaPorToken,
+  confirmarCita,
+} from './cita.controller';
+import {
+  agendarCitaPublicaSchema,
+  cancelarCitaPorTokenSchema,
+  cancelarCitaSchema,
+  confirmarCitaSchema,
+} from './cita.validation';
 
 const router = Router();
 
@@ -14,6 +24,24 @@ router.post(
   '/',
   validate(agendarCitaPublicaSchema),
   agendarCitaPublica
+);
+
+router.patch(
+  '/:id/confirmar',
+  validate(confirmarCitaSchema),
+  confirmarCita
+);
+
+router.patch(
+  '/:id/cancelar',
+  validate(cancelarCitaSchema),
+  cancelarCita
+);
+
+router.patch(
+  '/cancelar/:token',
+  validate(cancelarCitaPorTokenSchema),
+  cancelarCitaPorToken
 );
 
 export default router;

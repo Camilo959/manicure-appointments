@@ -1,6 +1,4 @@
-import { v4 as uuidv4 } from 'uuid';
-import prisma from '../../config/prisma';
-import { CitaRepository } from './cita.repository';
+import { CitaRepository, type CitaConRelaciones } from './cita.repository';
 import type { AgendarCitaPublicaInput, CitaCreadaDTO } from './cita.types';
 import {
   TrabajadoraNoDisponibleError,
@@ -11,6 +9,8 @@ import {
   SolapamientoCitaError,
   ServiciosNoEncontradosError,
   DuracionInvalidaError,
+  CitaNoEncontradaError,
+  CitaEstadoInvalidoError,
 } from './cita.errors';
 import {
   combinarFechaHora,
@@ -21,8 +21,13 @@ import {
   generarNumeroConfirmacion,
   formatearFecha,
 } from './cita.utils';
-import type { Prisma } from '../../../generated/prisma/client';
-import { notificacionesService } from '../notificaciones';
+import { EstadoCita } from '../../../generated/prisma/client';
+import {
+  notificacionesService,
+  type InputCitaCancelada,
+  type InputCitaConfirmada,
+  type InputCitaCreada,
+} from '../notificaciones';
 
 export class CitaService {
   constructor(private repository: CitaRepository) {}
@@ -36,8 +41,8 @@ export class CitaService {
   async agendarCitaPublica(data: AgendarCitaPublicaInput): Promise<CitaCreadaDTO> {
     // Transacción con nivel de aislamiento SERIALIZABLE
     // Esto previene anomalías de lectura fantasma y write skew
-    const citaCreada = await prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
+    const citaCreada = await this.repository.ejecutarEnTransaccion(
+      async (tx) => {
         // ═══════════════════════════════════════════════════════
         // PASO 1: Validar trabajadora
         // ═══════════════════════════════════════════════════════
@@ -137,9 +142,8 @@ export class CitaService {
         );
 
         // ═══════════════════════════════════════════════════════
-        // PASO 7: Generar tokens y confirmación
+        // PASO 7: Generar número de confirmación
         // ═══════════════════════════════════════════════════════
-        const tokenCancelacion = uuidv4(); // UUID v4 no predecible
         const numeroConfirmacion = generarNumeroConfirmacion();
 
         // ═══════════════════════════════════════════════════════
@@ -153,7 +157,6 @@ export class CitaService {
             fechaFin,
             duracionTotal,
             precioTotal,
-            tokenCancelacion,
             numeroConfirmacion,
             serviciosIds: data.serviciosIds,
           },
@@ -184,6 +187,100 @@ export class CitaService {
     return citaCreada;
   }
 
+  async confirmarCita(citaId: string): Promise<CitaCreadaDTO> {
+    const citaConfirmada = await this.repository.ejecutarEnTransaccion(async (tx) => {
+      const cita = await this.repository.buscarCitaPorIdConRelaciones(citaId, tx);
+
+      if (!cita) {
+        throw new CitaNoEncontradaError();
+      }
+
+      if (cita.estado !== EstadoCita.PENDIENTE) {
+        throw new CitaEstadoInvalidoError(cita.estado, 'confirmar');
+      }
+
+      return this.repository.actualizarEstadoCita(cita.id, EstadoCita.CONFIRMADA, tx);
+    });
+
+    this.enviarNotificacionCitaConfirmada(citaConfirmada).catch((error) => {
+      console.error('Error al enviar notificación de cita confirmada:', error);
+    });
+
+    return this.formatearRespuestaCita(citaConfirmada);
+  }
+
+  async cancelarCita(citaId: string, motivo?: string): Promise<void> {
+    const citaCancelada = await this.repository.ejecutarEnTransaccion(async (tx) => {
+      const cita = await this.repository.buscarCitaPorIdConRelaciones(citaId, tx);
+
+      if (!cita) {
+        throw new CitaNoEncontradaError();
+      }
+
+      const estadosCancelables: EstadoCita[] = [
+        EstadoCita.PENDIENTE,
+        EstadoCita.CONFIRMADA,
+        EstadoCita.REPROGRAMADA,
+      ];
+
+      if (!estadosCancelables.includes(cita.estado)) {
+        throw new CitaEstadoInvalidoError(cita.estado, 'cancelar');
+      }
+
+      return this.repository.actualizarEstadoCita(cita.id, EstadoCita.CANCELADA, tx);
+    });
+
+    this.enviarNotificacionCitaCancelada(citaCancelada, motivo).catch((error) => {
+      console.error('Error al enviar notificación de cita cancelada:', error);
+    });
+  }
+
+  async cancelarCitaPorToken(tokenCancelacion: string): Promise<void> {
+    const citaCancelada = await this.repository.ejecutarEnTransaccion(async (tx) => {
+      const cita = await this.repository.buscarCitaPorToken(tokenCancelacion, tx);
+
+      if (!cita) {
+        throw new CitaNoEncontradaError();
+      }
+
+      const estadosCancelables: EstadoCita[] = [
+        EstadoCita.PENDIENTE,
+        EstadoCita.CONFIRMADA,
+      ];
+
+      if (!estadosCancelables.includes(cita.estado)) {
+        throw new CitaEstadoInvalidoError(cita.estado, 'cancelar');
+      }
+
+      const ahora = new Date();
+      if (cita.fechaInicio < ahora) {
+        throw new CitaEstadoInvalidoError(
+          cita.estado,
+          'cancelar',
+          'No se puede cancelar una cita pasada'
+        );
+      }
+
+      const horasAntes = (cita.fechaInicio.getTime() - ahora.getTime()) / (1000 * 60 * 60);
+      if (horasAntes < 24) {
+        throw new CitaEstadoInvalidoError(
+          cita.estado,
+          'cancelar',
+          'La cita debe cancelarse con al menos 24 horas de anticipación'
+        );
+      }
+
+      return this.repository.actualizarEstadoCita(cita.id, EstadoCita.CANCELADA, tx);
+    });
+
+    this.enviarNotificacionCitaCancelada(
+      citaCancelada,
+      'Cancelación solicitada por el cliente'
+    ).catch((error) => {
+      console.error('Error al enviar notificación de cancelación:', error);
+    });
+  }
+
   /**
    * Valida que la cita esté dentro del horario laboral
    */
@@ -211,7 +308,7 @@ export class CitaService {
   /**
    * Formatea la respuesta de la cita creada
    */
-  private formatearRespuestaCita(cita: any): CitaCreadaDTO {
+  private formatearRespuestaCita(cita: CitaConRelaciones): CitaCreadaDTO {
     return {
       id: cita.id,
       numeroConfirmacion: cita.numeroConfirmacion,
@@ -224,7 +321,7 @@ export class CitaService {
         id: cita.trabajadora.id,
         nombre: cita.trabajadora.nombre,
       },
-      servicios: cita.citaServicios.map((cs: any) => ({
+      servicios: cita.citaServicios.map((cs) => ({
         id: cs.servicio.id,
         nombre: cs.servicio.nombre,
         duracion: cs.servicio.duracionMinutos,
@@ -243,7 +340,7 @@ export class CitaService {
   /**
    * Genera instrucciones para el cliente
    */
-  private generarInstrucciones(cita: any): string {
+  private generarInstrucciones(cita: CitaConRelaciones): string {
     const fecha = formatearFecha(cita.fechaInicio);
     
     return `
@@ -276,14 +373,12 @@ export class CitaService {
     }
 
     // Preparar datos para la notificación
-    const datosNotificacion = {
+    const datosNotificacion: InputCitaCreada = {
       destinatario: cita.cliente.email,
       nombreDestinatario: cita.cliente.nombre,
       numeroConfirmacion: cita.numeroConfirmacion,
       nombreTrabajadora: cita.trabajadora.nombre,
       fecha: cita.fechaInicio,
-      fechaFormateada: '', // Se completa en el servicio
-      hora: '', // Se completa en el servicio
       servicios: cita.servicios.map(s => ({
         nombre: s.nombre,
         duracion: s.duracion,
@@ -292,7 +387,6 @@ export class CitaService {
       duracionTotal: cita.duracionTotal,
       precioTotal: cita.precioTotal,
       tokenCancelacion: cita.tokenCancelacion,
-      linkCancelacion: '', // Se completa en el servicio
     };
 
     // Enviar notificación (async sin await para no bloquear)
@@ -300,6 +394,69 @@ export class CitaService {
 
     if (resultado.exito) {
       console.log(`✅ Notificación de cita creada enviada a ${cita.cliente.email}`);
+    } else {
+      console.error(`❌ Error al enviar notificación: ${resultado.error}`);
+    }
+  }
+
+  private async enviarNotificacionCitaConfirmada(cita: CitaConRelaciones): Promise<void> {
+    if (!cita.cliente.email) {
+      console.log(`ℹ️  Cliente ${cita.cliente.nombre} no tiene email. Notificación omitida.`);
+      return;
+    }
+
+    const datosNotificacion: InputCitaConfirmada = {
+      destinatario: cita.cliente.email,
+      nombreDestinatario: cita.cliente.nombre,
+      numeroConfirmacion: cita.numeroConfirmacion,
+      nombreTrabajadora: cita.trabajadora.nombre,
+      fecha: cita.fechaInicio,
+      servicios: cita.citaServicios.map((cs) => ({
+        nombre: cs.servicio.nombre,
+        duracion: cs.servicio.duracionMinutos,
+        precio: Number(cs.servicio.precio),
+      })),
+      duracionTotal: cita.duracionTotal,
+      precioTotal: Number(cita.precioTotal),
+      tokenCancelacion: cita.tokenCancelacion,
+    };
+
+    const resultado = await notificacionesService.enviarCitaConfirmada(datosNotificacion);
+
+    if (resultado.exito) {
+      console.log(`✅ Notificación de cita confirmada enviada a ${cita.cliente.email}`);
+    } else {
+      console.error(`❌ Error al enviar notificación: ${resultado.error}`);
+    }
+  }
+
+  private async enviarNotificacionCitaCancelada(
+    cita: CitaConRelaciones,
+    motivo?: string
+  ): Promise<void> {
+    if (!cita.cliente.email) {
+      console.log(`ℹ️  Cliente ${cita.cliente.nombre} no tiene email. Notificación omitida.`);
+      return;
+    }
+
+    const datosNotificacion: InputCitaCancelada = {
+      destinatario: cita.cliente.email,
+      nombreDestinatario: cita.cliente.nombre,
+      numeroConfirmacion: cita.numeroConfirmacion,
+      nombreTrabajadora: cita.trabajadora.nombre,
+      fecha: cita.fechaInicio,
+      servicios: cita.citaServicios.map((cs) => ({
+        nombre: cs.servicio.nombre,
+        duracion: cs.servicio.duracionMinutos,
+        precio: Number(cs.servicio.precio),
+      })),
+      motivo,
+    };
+
+    const resultado = await notificacionesService.enviarCitaCancelada(datosNotificacion);
+
+    if (resultado.exito) {
+      console.log(`✅ Notificación de cita cancelada enviada a ${cita.cliente.email}`);
     } else {
       console.error(`❌ Error al enviar notificación: ${resultado.error}`);
     }

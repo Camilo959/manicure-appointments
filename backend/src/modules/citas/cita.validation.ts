@@ -81,6 +81,27 @@ export const agendarCitaPublicaSchema = z.object({
   }),
 });
 
+export const confirmarCitaSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('ID de cita inválido'),
+  }),
+});
+
+export const cancelarCitaSchema = z.object({
+  params: z.object({
+    id: z.string().uuid('ID de cita inválido'),
+  }),
+  body: z.object({
+    motivo: z.string().trim().min(1, 'El motivo no puede estar vacío').optional(),
+  }),
+});
+
+export const cancelarCitaPorTokenSchema = z.object({
+  params: z.object({
+    token: z.string().uuid('Token de cancelación inválido'),
+  }),
+});
+
 /**
  * Type exports
  */

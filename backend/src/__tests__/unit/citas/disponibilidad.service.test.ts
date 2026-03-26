@@ -10,17 +10,33 @@ describe('DisponibilidadService', () => {
 
     let service: DisponibilidadService;
 
+    const obtenerFechaValida = (): string => {
+        const fecha = new Date();
+        fecha.setDate(fecha.getDate() + 7);
+
+        // Evitar domingo para no gatillar validación de día bloqueado.
+        if (fecha.getDay() === 0) {
+            fecha.setDate(fecha.getDate() + 1);
+        }
+
+        const yyyy = fecha.getFullYear();
+        const mm = String(fecha.getMonth() + 1).padStart(2, '0');
+        const dd = String(fecha.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     beforeEach(() => {
         jest.clearAllMocks();
         service = new DisponibilidadService(prismaMock);
     });
 
     test('deberia retornar sin slots si el dia esta bloqueado', async () => {
+        const fecha = obtenerFechaValida();
         prismaMock.trabajadora.findUnique.mockResolvedValue({ id: 't1', activa: true });
         prismaMock.diaBloqueado.findUnique.mockResolvedValue({ id: 'db1' });
 
         const resultado = await service.consultarDisponibilidad({
-            fecha: '2099-10-01',
+            fecha,
             trabajadoraId: 't1',
             serviciosIds: ['s1'],
         });
@@ -31,6 +47,7 @@ describe('DisponibilidadService', () => {
     });
 
     test('deberia calcular slots cuando no hay citas ocupadas', async () => {
+        const fecha = obtenerFechaValida();
         prismaMock.trabajadora.findUnique.mockResolvedValue({ id: 't1', activa: true });
         prismaMock.diaBloqueado.findUnique.mockResolvedValue(null);
         prismaMock.servicio.findMany.mockResolvedValue([
@@ -39,7 +56,7 @@ describe('DisponibilidadService', () => {
         prismaMock.cita.findMany.mockResolvedValue([]);
 
         const resultado = await service.consultarDisponibilidad({
-            fecha: '2099-10-01',
+            fecha,
             trabajadoraId: 't1',
             serviciosIds: ['s1'],
         });

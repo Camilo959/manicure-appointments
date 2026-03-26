@@ -7,6 +7,15 @@ import {
   HORARIO_CONFIG,
   ESTADOS_OCUPADOS,
 } from '../../types/disponibilidad.types';
+import {
+  DiaBloqueadoError,
+  FechaEnPasadoError,
+  FechaFueraDeRangoError,
+  ServicioNoDisponibleError,
+  ServiciosNoEncontradosError,
+  TrabajadoraNoDisponibleError,
+} from './cita.errors';
+import { validarDiaSemana, validarFechaMaxima } from './disponibilidad.validation';
 
 export class DisponibilidadService {
   constructor(private prisma: PrismaClient) {}
@@ -24,7 +33,15 @@ export class DisponibilidadService {
     const hoy = startOfDay(new Date());
     
     if (isBefore(fechaConsulta, hoy)) {
-      throw new Error('No se puede consultar disponibilidad en fechas pasadas');
+      throw new FechaEnPasadoError();
+    }
+
+    if (!validarDiaSemana(fechaConsulta)) {
+      throw new DiaBloqueadoError(fecha);
+    }
+
+    if (!validarFechaMaxima(fechaConsulta)) {
+      throw new FechaFueraDeRangoError();
     }
 
     // 2. Validar trabajadora existe y está activa
@@ -33,11 +50,11 @@ export class DisponibilidadService {
     });
 
     if (!trabajadora) {
-      throw new Error('Trabajadora no encontrada');
+      throw new TrabajadoraNoDisponibleError('seleccionada');
     }
 
     if (!trabajadora.activa) {
-      throw new Error('Trabajadora no está activa');
+      throw new TrabajadoraNoDisponibleError(trabajadora.nombre);
     }
 
     // 3. Verificar si el día está bloqueado
@@ -63,7 +80,30 @@ export class DisponibilidadService {
     });
 
     if (servicios.length !== serviciosIds.length) {
-      throw new Error('Uno o más servicios no están disponibles');
+      const serviciosExistentes = await this.prisma.servicio.findMany({
+        where: {
+          id: { in: serviciosIds },
+        },
+        select: {
+          id: true,
+          nombre: true,
+          activo: true,
+        },
+      });
+
+      const encontrados = serviciosExistentes.map((servicio) => servicio.id);
+      const faltantes = serviciosIds.filter((id) => !encontrados.includes(id));
+
+      if (faltantes.length > 0) {
+        throw new ServiciosNoEncontradosError(faltantes);
+      }
+
+      const servicioInactivo = serviciosExistentes.find((servicio) => !servicio.activo);
+      if (servicioInactivo) {
+        throw new ServicioNoDisponibleError(servicioInactivo.nombre);
+      }
+
+      throw new ServiciosNoEncontradosError(serviciosIds);
     }
 
     const duracionTotalMinutos = servicios.reduce(

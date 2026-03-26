@@ -39,6 +39,16 @@ export class FechaEnPasadoError extends CitaError {
   }
 }
 
+export class FechaFueraDeRangoError extends CitaError {
+  constructor() {
+    super(
+      'Solo se pueden agendar citas hasta 3 meses en adelante',
+      400,
+      'FECHA_FUERA_DE_RANGO'
+    );
+  }
+}
+
 export class HorarioNoDisponibleError extends CitaError {
   constructor(razon: string) {
     super(
@@ -85,6 +95,22 @@ export class DuracionInvalidaError extends CitaError {
       'La duración total de los servicios excede el horario laboral',
       400,
       'DURACION_INVALIDA'
+    );
+  }
+}
+
+export class CitaNoEncontradaError extends CitaError {
+  constructor() {
+    super('Cita no encontrada', 404, 'CITA_NO_ENCONTRADA');
+  }
+}
+
+export class CitaEstadoInvalidoError extends CitaError {
+  constructor(estadoActual: string, accion: string, mensaje?: string) {
+    super(
+      mensaje || `No se puede ${accion} una cita en estado ${estadoActual}`,
+      409,
+      'CITA_ESTADO_INVALIDO'
     );
   }
 }
