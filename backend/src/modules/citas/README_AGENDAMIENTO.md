@@ -13,9 +13,15 @@ Endpoint público `POST /api/citas` que permite a clientes (sin autenticación) 
 ├── 🗄️ cita.repository.ts       [Data Access - Prisma queries]
 ├── 🛤️ cita.routes.ts           [Routing - Definición endpoints]
 ├── ✅ cita.validation.ts        [Zod schemas - Validación input]
-├── ❌ cita.error.ts             [Custom Errors - Errores tipados]
-├── 📘 cita.type.ts              [TypeScript Types/DTOs]
-└── 🔧 cita.utils.ts             [Utilities - Cálculos y helpers]
+├── ❌ cita.errors.ts            [Custom Errors - Errores tipados]
+├── 📘 cita.types.ts             [TypeScript Types/DTOs]
+├── 🔧 cita.utils.ts             [Utilities - Cálculos y helpers]
+│
+├── 📁 disponibilidad/
+├── disponibilidad.controller.ts
+├── disponibilidad.service.ts
+├── disponibilidad.routes.ts
+└── disponibilidad.validation.ts
 ```
 
 ## 📊 Cambios en el Schema de Prisma
@@ -111,6 +117,190 @@ model Cita {
 }
 ```
 
+### Errores posibles
+
+- `400 FECHA_EN_PASADO`
+- `400 DIA_BLOQUEADO`
+- `400 DURACION_INVALIDA`
+- `400 TRABAJADORA_NO_DISPONIBLE`
+- `400 SERVICIO_NO_DISPONIBLE`
+- `404 SERVICIOS_NO_ENCONTRADOS`
+- `409 HORARIO_NO_DISPONIBLE`
+- `409 SOLAPAMIENTO_CITA`
+
+---
+
+## 📥 Endpoint: PATCH /api/citas/:id/confirmar
+
+**Acceso**: Autenticado  
+**Regla de estado**: Solo permite confirmar citas en `PENDIENTE`.
+
+### Request
+
+```http
+PATCH /api/citas/:id/confirmar
+```
+
+Path params:
+
+```json
+{
+  "id": "uuid-cita"
+}
+```
+
+### Response exitosa (200)
+
+Retorna `CitaCreadaDTO` con estado actualizado:
+
+```json
+{
+  "success": true,
+  "message": "Cita confirmada exitosamente",
+  "data": {
+    "id": "uuid-cita",
+    "estado": "CONFIRMADA"
+  }
+}
+```
+
+### Errores posibles
+
+- `404 CITA_NO_ENCONTRADA`
+- `409 CITA_ESTADO_INVALIDO`
+
+---
+
+## 📥 Endpoint: PATCH /api/citas/:id/cancelar
+
+**Acceso**: Autenticado  
+**Regla de estado**: Válido para `PENDIENTE`, `CONFIRMADA`, `REPROGRAMADA`.
+
+### Request
+
+```http
+PATCH /api/citas/:id/cancelar
+```
+
+Path params:
+
+```json
+{
+  "id": "uuid-cita"
+}
+```
+
+Body (opcional):
+
+```json
+{
+  "motivo": "Cancelación solicitada por administración"
+}
+```
+
+### Response exitosa (200)
+
+```json
+{
+  "success": true,
+  "message": "Cita cancelada exitosamente"
+}
+```
+
+### Errores posibles
+
+- `404 CITA_NO_ENCONTRADA`
+- `409 CITA_ESTADO_INVALIDO`
+
+---
+
+## 📥 Endpoint: PATCH /api/citas/cancelar/:token
+
+**Acceso**: Público  
+**Reglas de negocio**:
+- Solo permite cancelar citas en `PENDIENTE` y `CONFIRMADA`.
+- La cita no puede estar en el pasado.
+- Deben faltar más de 24 horas para `fechaInicio`.
+
+### Request
+
+```http
+PATCH /api/citas/cancelar/:token
+```
+
+Path params:
+
+```json
+{
+  "token": "uuid-token-cancelacion"
+}
+```
+
+### Response exitosa (200)
+
+```json
+{
+  "success": true,
+  "message": "Cita cancelada exitosamente"
+}
+```
+
+### Errores posibles
+
+- `404 CITA_NO_ENCONTRADA`
+- `409 CITA_ESTADO_INVALIDO` (estado no cancelable)
+- `409 CITA_ESTADO_INVALIDO` (cita en pasado)
+- `409 CITA_ESTADO_INVALIDO` (ventana < 24 horas)
+
+---
+
+## 📥 Endpoint: GET /api/citas/disponibilidad
+
+**Acceso**: Autenticado
+
+### Query params
+
+```text
+fecha=YYYY-MM-DD
+trabajadoraId=<uuid>
+serviciosIds[]=<uuid>
+serviciosIds[]=<uuid>
+```
+
+### Response exitosa (200)
+
+```json
+{
+  "success": true,
+  "data": {
+    "fecha": "2026-03-15",
+    "trabajadoraId": "uuid-trabajadora",
+    "duracionTotalMinutos": 75,
+    "slotsDisponibles": [
+      {
+        "inicio": "2026-03-15T10:00:00.000Z",
+        "fin": "2026-03-15T11:15:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### Reglas de negocio aplicadas
+
+- Fecha no puede estar en el pasado.
+- Fecha máxima permitida: 3 meses en adelante.
+- Trabajadora debe existir y estar activa.
+- Día no bloqueado en tabla `DiaBloqueado`.
+
+### Errores posibles
+
+- `400 FECHA_EN_PASADO`
+- `400 FECHA_FUERA_DE_RANGO`
+- `400 TRABAJADORA_NO_DISPONIBLE`
+- `400 SERVICIO_NO_DISPONIBLE`
+- `404 SERVICIOS_NO_ENCONTRADOS`
+
 ---
 
 ## 🧠 Reglas de negocio implementadas
@@ -164,6 +354,15 @@ if (esDiaBloqueado) {
 - `DiaBloqueadoError` (400)
 - `HorarioNoDisponibleError` (409)
 - `DuracionInvalidaError` (400)
+- `FechaFueraDeRangoError` (400)
+
+---
+
+### 3️⃣bis Errores de dominio adicionales
+
+- `CitaNoEncontradaError` (`404`, `CITA_NO_ENCONTRADA`)
+- `CitaEstadoInvalidoError` (`409`, `CITA_ESTADO_INVALIDO`)
+- `FechaFueraDeRangoError` (`400`, `FECHA_FUERA_DE_RANGO`)
 
 ---
 
@@ -190,7 +389,7 @@ if (citasSolapadas.length > 0) {
 
 #### Nivel de aislamiento:
 ```typescript
-await prisma.$transaction(async (tx) => {
+await repository.ejecutarEnTransaccion(async (tx) => {
   // ... lógica
 }, {
   isolationLevel: 'Serializable',  // 🔒 Máxima protección
@@ -229,10 +428,13 @@ const cliente = await tx.cliente.upsert({
 
 ### 6️⃣ Token de cancelación seguro
 
-```typescript
-import { v4 as uuidv4 } from 'uuid';
-const tokenCancelacion = uuidv4();  // UUID v4 = No predecible
+El token se genera automáticamente en Prisma por definición de schema:
+
+```prisma
+tokenCancelacion String @unique @default(uuid())
 ```
+
+No se genera manualmente en `cita.service.ts`.
 
 **Características**:
 - UUID v4 (aleatorio)
@@ -574,7 +776,7 @@ router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
 
 ### 3. Protección contra ataques
 - ✅ No expone IDs internos sensibles
-- ✅ Token de cancelación no predecible (UUID v4)
+- ✅ Token de cancelación no predecible (UUID generado por Prisma)
 - ✅ No permite inyección SQL (Prisma ORM)
 - ✅ Timeout previene DoS
 
@@ -588,8 +790,9 @@ router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
 - [x] Transacciones serializables
 - [x] Locks pesimistas (FOR UPDATE)
 - [x] Manejo de errores tipados
+- [x] Errores de dominio para estado inválido y cita no encontrada
 - [x] Prevención de race conditions
-- [x] UUID no predecible para cancelación
+- [x] Token generado por Prisma
 - [x] Upsert de cliente (idempotencia)
 - [x] Validación de horarios
 - [x] Validación de días bloqueados
@@ -597,6 +800,8 @@ router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
 - [x] Número de confirmación legible
 - [x] Middleware de errores actualizado
 - [x] Rutas registradas en app.ts
+- [x] Endpoints de confirmación y cancelación
+- [x] Validación de ventana de 24h para cancelación por token
 - [ ] Tests unitarios
 - [ ] Tests de integración (race conditions)
 - [ ] Tests E2E
@@ -618,8 +823,7 @@ npx prisma generate
 
 ### 2. Instalar dependencias faltantes
 ```bash
-npm install uuid date-fns
-npm install --save-dev @types/uuid
+npm install date-fns
 ```
 
 ### 3. Ejecutar tests
@@ -663,5 +867,5 @@ Este módulo está diseñado para **producción real** con:
 ---
 
 **Autor**: Backend Team  
-**Fecha**: 2026-02-12  
-**Versión**: 1.0.0
+**Fecha**: 2026-03-26  
+**Versión**: 1.1.0
