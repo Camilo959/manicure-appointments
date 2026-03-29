@@ -3,7 +3,7 @@
 ## 🔑 Prerequisitos
 
 Todas las peticiones requieren:
-- Token JWT válido de un usuario con rol `ADMIN` (excepto GET /servicios que también permite TRABAJADORA)
+- Token JWT válido de un usuario con rol `ADMIN` (excepto GET /servicios y GET /servicios/:id que también permiten TRABAJADORA)
 - Header: `Authorization: Bearer <tu_token_jwt>`
 - Header: `Content-Type: application/json`
 
@@ -15,7 +15,7 @@ Todas las peticiones requieren:
 POST /api/servicios
 ```
 
-**Request:**
+**Request (precio obligatorio):**
 
 ```json
 {
@@ -337,6 +337,7 @@ PATCH /api/servicios/:id/estado
   "servicio": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "nombre": "Manicure Clásico",
+    "precio": 25000,
     "activo": false,
     "updatedAt": "2026-02-13T17:00:00.000Z"
   }
@@ -360,6 +361,7 @@ PATCH /api/servicios/:id/estado
   "servicio": {
     "id": "550e8400-e29b-41d4-a716-446655440000",
     "nombre": "Manicure Clásico",
+    "precio": 25000,
     "activo": true,
     "updatedAt": "2026-02-13T17:30:00.000Z"
   }
@@ -373,6 +375,13 @@ PATCH /api/servicios/:id/estado
 {
   "success": false,
   "message": "No se puede desactivar el único servicio activo"
+}
+
+// 409 - Servicio con citas futuras pendientes o confirmadas
+{
+  "success": false,
+  "message": "No se puede desactivar un servicio con citas futuras pendientes o confirmadas",
+  "code": "SERVICIO_CON_CITAS_FUTURAS"
 }
 
 // 404 - Servicio no encontrado
@@ -541,7 +550,7 @@ pm.test("Save servicio ID", function () {
 1. **Autenticación obligatoria**: Todos los endpoints requieren token JWT válido
 2. **Autorización por rol**:
    - Solo `ADMIN` puede crear, actualizar y cambiar estado
-   - `TRABAJADORA` solo puede listar servicios activos
+  - `TRABAJADORA` puede listar servicios activos y consultar detalles por ID
 3. **Validación estricta**: Zod valida todos los inputs
 4. **Protección contra duplicados**: Nombres únicos (case insensitive)
 
@@ -555,7 +564,7 @@ pm.test("Save servicio ID", function () {
 # ❌ Sin header Authorization
 curl -X POST http://localhost:3000/api/servicios \
   -H "Content-Type: application/json" \
-  -d '{"nombre": "Test", "duracionMinutos": 30}'
+  -d '{"nombre": "Test", "duracionMinutos": 30, "precio": 20000}'
 
 # Response: 401 Unauthorized
 ```
@@ -567,7 +576,7 @@ curl -X POST http://localhost:3000/api/servicios \
 curl -X POST http://localhost:3000/api/servicios \
   -H "Authorization: Bearer $TOKEN_TRABAJADORA" \
   -H "Content-Type: application/json" \
-  -d '{"nombre": "Test", "duracionMinutos": 30}'
+  -d '{"nombre": "Test", "duracionMinutos": 30, "precio": 20000}'
 
 # Response: 403 Forbidden
 ```
@@ -579,7 +588,7 @@ curl -X POST http://localhost:3000/api/servicios \
 curl -X POST http://localhost:3000/api/servicios \
   -H "Authorization: Bearer $TOKEN_ADMIN" \
   -H "Content-Type: application/json" \
-  -d '{"nombre": "Test", "duracionMinutos": 500}'
+  -d '{"nombre": "Test", "duracionMinutos": 500, "precio": 20000}'
 
 # Response: 400 Bad Request
 # Message: "La duración no puede superar 480 minutos (8 horas)"
@@ -592,7 +601,7 @@ curl -X POST http://localhost:3000/api/servicios \
 curl -X POST http://localhost:3000/api/servicios \
   -H "Authorization: Bearer $TOKEN_ADMIN" \
   -H "Content-Type: application/json" \
-  -d '{"nombre": "Manicure Clásico", "duracionMinutos": 30}'
+  -d '{"nombre": "Manicure Clásico", "duracionMinutos": 30, "precio": 25000}'
 
 # Response: 409 Conflict
 # Message: "Ya existe un servicio con ese nombre"
@@ -613,5 +622,5 @@ curl -X PATCH http://localhost:3000/api/servicios/$SERVICIO_ID/estado \
 
 ---
 
-**Última actualización**: Febrero 2026  
-**Versión**: 1.0.0
+**Última actualización**: 29 de marzo de 2026  
+**Versión**: 1.1.0

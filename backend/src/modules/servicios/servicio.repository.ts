@@ -97,12 +97,19 @@ export class ServicioRepository {
   }
 
   /**
-   * Verificar si un servicio está siendo usado en citas
+   * Verificar si un servicio tiene citas futuras pendientes o confirmadas
    */
-  async estaEnUso(id: string) {
+  async tieneCitasFuturas(id: string): Promise<boolean> {
     const count = await prisma.citaServicio.count({
-      where: { servicioId: id },
+      where: {
+        servicioId: id,
+        cita: {
+          estado: { in: ['PENDIENTE', 'CONFIRMADA'] },
+          fechaInicio: { gt: new Date() },
+        },
+      },
     });
+
     return count > 0;
   }
 }

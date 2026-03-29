@@ -1,5 +1,12 @@
 import { ServicioRepository } from './servicio.repository';
 import type { CrearServicioInput, ActualizarServicioInput } from './servicio.validation';
+import { Rol } from '../../../generated/prisma/client';
+import {
+  NombreDuplicadoError,
+  ServicioConCitasFuturasError,
+  ServicioNoEncontradoError,
+  UnicoServicioActivoError,
+} from './servicio.errors';
 
 /**
  * Servicio con la lógica de negocio para Servicios
@@ -15,7 +22,7 @@ export class ServicioService {
     const servicioExistente = await this.repository.buscarPorNombre(data.nombre);
 
     if (servicioExistente) {
-      throw new Error('Ya existe un servicio con ese nombre');
+      throw new NombreDuplicadoError();
     }
 
     const servicio = await this.repository.crear(data);
@@ -26,6 +33,7 @@ export class ServicioService {
         id: servicio.id,
         nombre: servicio.nombre,
         duracionMinutos: servicio.duracionMinutos,
+        precio: Number(servicio.precio),
         activo: servicio.activo,
         createdAt: servicio.createdAt,
       },
@@ -35,10 +43,10 @@ export class ServicioService {
   /**
    * Listar servicios según el rol del usuario
    */
-  async listar(rol: string) {
+  async listar(rol: Rol) {
     let servicios;
 
-    if (rol === 'ADMIN') {
+    if (rol === Rol.ADMIN) {
       // Admin ve todos los servicios
       servicios = await this.repository.listarTodos();
     } else {
@@ -52,6 +60,7 @@ export class ServicioService {
         id: s.id,
         nombre: s.nombre,
         duracionMinutos: s.duracionMinutos,
+        precio: Number(s.precio),
         activo: s.activo,
         createdAt: s.createdAt,
       })),
@@ -66,7 +75,7 @@ export class ServicioService {
     const servicio = await this.repository.buscarPorId(id);
 
     if (!servicio) {
-      throw new Error('Servicio no encontrado');
+      throw new ServicioNoEncontradoError();
     }
 
     return {
@@ -75,6 +84,7 @@ export class ServicioService {
         id: servicio.id,
         nombre: servicio.nombre,
         duracionMinutos: servicio.duracionMinutos,
+        precio: Number(servicio.precio),
         activo: servicio.activo,
         createdAt: servicio.createdAt,
         updatedAt: servicio.updatedAt,
@@ -90,7 +100,7 @@ export class ServicioService {
     const servicioExistente = await this.repository.buscarPorId(id);
 
     if (!servicioExistente) {
-      throw new Error('Servicio no encontrado');
+      throw new ServicioNoEncontradoError();
     }
 
     // Si se actualiza el nombre, verificar que no exista otro servicio con ese nombre
@@ -98,7 +108,7 @@ export class ServicioService {
       const nombreDuplicado = await this.repository.buscarPorNombre(data.nombre);
 
       if (nombreDuplicado && nombreDuplicado.id !== id) {
-        throw new Error('Ya existe otro servicio con ese nombre');
+        throw new NombreDuplicadoError();
       }
     }
 
@@ -110,6 +120,7 @@ export class ServicioService {
         id: servicioActualizado.id,
         nombre: servicioActualizado.nombre,
         duracionMinutos: servicioActualizado.duracionMinutos,
+        precio: Number(servicioActualizado.precio),
         activo: servicioActualizado.activo,
         updatedAt: servicioActualizado.updatedAt,
       },
@@ -124,15 +135,21 @@ export class ServicioService {
     const servicio = await this.repository.buscarPorId(id);
 
     if (!servicio) {
-      throw new Error('Servicio no encontrado');
+      throw new ServicioNoEncontradoError();
     }
 
-    // Si se intenta desactivar, verificar que no sea el único servicio activo
+    // Si se intenta desactivar, validar reglas de negocio antes del cambio
     if (!activo && servicio.activo) {
+      const tieneCitasFuturas = await this.repository.tieneCitasFuturas(id);
+
+      if (tieneCitasFuturas) {
+        throw new ServicioConCitasFuturasError();
+      }
+
       const cantidadActivos = await this.repository.contarActivos();
 
       if (cantidadActivos <= 1) {
-        throw new Error('No se puede desactivar el único servicio activo');
+        throw new UnicoServicioActivoError();
       }
     }
 
@@ -145,6 +162,7 @@ export class ServicioService {
       servicio: {
         id: servicioActualizado.id,
         nombre: servicioActualizado.nombre,
+        precio: Number(servicioActualizado.precio),
         activo: servicioActualizado.activo,
         updatedAt: servicioActualizado.updatedAt,
       },

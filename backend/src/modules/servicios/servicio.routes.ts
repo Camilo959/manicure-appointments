@@ -46,12 +46,12 @@ router.get(
 /**
  * @route   GET /api/servicios/:id
  * @desc    Obtener un servicio por ID
- * @access  Private - Solo ADMIN
+ * @access  Private - ADMIN y TRABAJADORA
  */
 router.get(
   '/:id',
   authenticate,
-  authorizeRoles('ADMIN'),
+  authorizeRoles('ADMIN', 'TRABAJADORA'),
   validate(obtenerServicioPorIdSchema),
   obtenerServicioPorId
 );

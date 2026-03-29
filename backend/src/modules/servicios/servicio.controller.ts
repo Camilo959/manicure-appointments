@@ -1,9 +1,20 @@
 import type { Request, Response, NextFunction } from 'express';
 import { ServicioService } from './servicio.service';
 import { ServicioRepository } from './servicio.repository';
+import { Rol } from '../../../generated/prisma/client';
+import { AppError } from '../../middlewares/error.middleware';
+import { ServicioError } from './servicio.errors';
 
 const repository = new ServicioRepository();
 const service = new ServicioService(repository);
+
+function normalizarErrorServicio(error: unknown): Error {
+  if (error instanceof ServicioError) {
+    return new AppError(error.message, error.statusCode, error.code);
+  }
+
+  return error as Error;
+}
 
 /**
  * Controlador para crear un nuevo servicio
@@ -21,7 +32,7 @@ export const crearServicio = async (
       ...result,
     });
   } catch (error) {
-    next(error);
+    next(normalizarErrorServicio(error));
   }
 };
 
@@ -34,7 +45,7 @@ export const listarServicios = async (
   next: NextFunction
 ) => {
   try {
-    const rol = req.user?.rol || 'TRABAJADORA';
+    const rol: Rol = req.user?.rol === 'ADMIN' ? Rol.ADMIN : Rol.TRABAJADORA;
     const result = await service.listar(rol);
 
     res.status(200).json({
@@ -42,7 +53,7 @@ export const listarServicios = async (
       ...result,
     });
   } catch (error) {
-    next(error);
+    next(normalizarErrorServicio(error));
   }
 };
 
@@ -63,7 +74,7 @@ export const obtenerServicioPorId = async (
       ...result,
     });
   } catch (error) {
-    next(error);
+    next(normalizarErrorServicio(error));
   }
 };
 
@@ -84,7 +95,7 @@ export const actualizarServicio = async (
       ...result,
     });
   } catch (error) {
-    next(error);
+    next(normalizarErrorServicio(error));
   }
 };
 
@@ -106,6 +117,6 @@ export const cambiarEstadoServicio = async (
       ...result,
     });
   } catch (error) {
-    next(error);
+    next(normalizarErrorServicio(error));
   }
 };

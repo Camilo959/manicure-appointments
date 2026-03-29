@@ -74,7 +74,7 @@ servicios/
 |--------|------|-------------|--------|
 | `POST` | `/api/servicios` | Crear servicio | ADMIN |
 | `GET` | `/api/servicios` | Listar servicios | ADMIN, TRABAJADORA |
-| `GET` | `/api/servicios/:id` | Obtener por ID | ADMIN |
+| `GET` | `/api/servicios/:id` | Obtener por ID | ADMIN, TRABAJADORA |
 | `PUT` | `/api/servicios/:id` | Actualizar servicio | ADMIN |
 | `PATCH` | `/api/servicios/:id/estado` | Cambiar estado (activo/inactivo) | ADMIN |
 
@@ -96,6 +96,7 @@ servicios/
 ### Al desactivar servicio
 
 ⚠️ **No se puede desactivar si**:
+- Tiene citas futuras en estado `PENDIENTE` o `CONFIRMADA`
 - Es el único servicio activo en el sistema
 
 ✅ Los servicios inactivos no aparecen para las trabajadoras  
@@ -110,6 +111,7 @@ servicios/
 
 **TRABAJADORA**:
 - Ve **solo** servicios activos
+- Puede consultar por ID los detalles de servicios activos
 - No puede crear ni modificar servicios
 - Los servicios activos se usan para crear citas
 
@@ -219,8 +221,7 @@ export const crearServicioSchema = z.object({
       .max(480, 'La duración no puede superar 480 minutos'),
     precio: z
       .number()
-      .positive('El precio debe ser mayor a 0')
-      .optional(),
+      .positive('El precio debe ser mayor a 0'),
   }),
 });
 ```
@@ -239,6 +240,7 @@ export const crearServicioSchema = z.object({
 |-------|-------|-------------|
 | Servicio no encontrado | ID inexistente | 404 |
 | Nombre duplicado | Servicio con mismo nombre ya existe | 409 |
+| ServicioConCitasFuturasError | Intentar desactivar servicio con citas futuras pendientes/confirmadas | 409 |
 | Único servicio activo | Intentar desactivar el último activo | 400 |
 | Validación fallida | Datos inválidos (Zod) | 400 |
 | Sin autorización | Token inválido/expirado | 401 |
@@ -253,7 +255,7 @@ model Servicio {
   id               String          @id @default(uuid())
   nombre           String          @unique
   duracionMinutos  Int
-  precio           Float           @default(0)
+  precio           Decimal         @db.Decimal(10,2)
   activo           Boolean         @default(true)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
@@ -269,7 +271,7 @@ model Servicio {
 export type CrearServicioInput = {
   nombre: string;
   duracionMinutos: number;
-  precio?: number;
+  precio: number;
 };
 
 export type ActualizarServicioInput = {
@@ -367,5 +369,5 @@ describe('ServicioService', () => {
 
 ---
 
-**Última actualización**: Febrero 2026  
-**Versión**: 1.0.0
+**Última actualización**: 29 de marzo de 2026  
+**Versión**: 1.1.0
