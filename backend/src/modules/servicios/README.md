@@ -255,7 +255,7 @@ model Servicio {
   id               String          @id @default(uuid())
   nombre           String          @unique
   duracionMinutos  Int
-  precio           Decimal         @db.Decimal(10,2)
+  precio           Int
   activo           Boolean         @default(true)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt

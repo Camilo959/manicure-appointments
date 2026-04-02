@@ -35,7 +35,7 @@ model Cita {
   fechaFin            DateTime
   estado              EstadoCita  @default(PENDIENTE)
   duracionTotal       Int         // ✅ NUEVO - Duración total en minutos
-  precioTotal         Decimal     @db.Decimal(10,2) // ✅ ACTUALIZADO (antes era "total")
+  precioTotal         Int         // ✅ ACTUALIZADO (antes era "total")
   numeroConfirmacion  String      @unique // ✅ NUEVO - Para que cliente lo guarde
   tokenCancelacion    String      @unique @default(uuid())
   createdAt           DateTime    @default(now())

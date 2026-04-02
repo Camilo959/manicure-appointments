@@ -1,9 +1,8 @@
-import type { Prisma } from '../../../generated/prisma/client';
 import { parse, format, addMinutes, isAfter, isBefore, startOfDay } from 'date-fns';
 
 type ServicioCalculo = {
   duracionMinutos: number;
-  precio: Prisma.Decimal;
+  precio: number;
 };
 
 /**

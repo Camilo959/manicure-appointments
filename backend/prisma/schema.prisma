@@ -88,7 +88,7 @@ model Servicio {
   id              String   @id @default(uuid()) @db.Uuid
   nombre          String
   duracionMinutos Int
-  precio          Decimal  @db.Decimal(10,2)
+  precio          Int
   activo          Boolean  @default(true)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -105,7 +105,7 @@ model Cita {
   fechaFin            DateTime
   estado              EstadoCita  @default(PENDIENTE)
   duracionTotal       Int         // Duración total en minutos
-  precioTotal         Decimal     @db.Decimal(10,2)
+  precioTotal         Int
   numeroConfirmacion  String      @unique
   tokenCancelacion    String      @unique @default(uuid())
   createdAt           DateTime    @default(now())
@@ -133,7 +133,7 @@ model CitaServicio {
 
   citaId     String   @db.Uuid
   cita       Cita     @relation(fields: [citaId], references: [id], onDelete: Cascade)
-  precioUnitario Decimal @db.Decimal(10,2)
+  precioUnitario Int
 
   servicioId String   @db.Uuid
   servicio   Servicio @relation(fields: [servicioId], references: [id], onDelete: Cascade)
