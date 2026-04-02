@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { TrabajadoraRepository } from './trabajadora.repository';
 import type { CrearTrabajadoraInput, ActualizarTrabajadoraInput } from './trabajadora.validation';
+import { Rol } from '../../../generated/prisma/client';
 import {
   TrabajadoraNotFoundError,
   TrabajadoraEmailDuplicateError,
@@ -53,10 +54,10 @@ export class TrabajadoraService {
   /**
    * Listar trabajadoras según el rol del usuario
    */
-  async listar(rol: string) {
+  async listar(rol: Rol) {
     let trabajadoras;
 
-    if (rol === 'ADMIN') {
+    if (rol === Rol.ADMIN) {
       // Admin ve todas las trabajadoras con conteo de citas
       trabajadoras = await this.repository.listarTodas();
     } else {
@@ -182,17 +183,17 @@ export class TrabajadoraService {
 
     // Si se intenta DESACTIVAR, aplicar validaciones de negocio
     if (!activa && trabajadora.activa) {
-      const cantidadActivas = await this.repository.contarActivas();
-
-      if (cantidadActivas <= 1) {
-        throw new LastActiveTrabajadoraError();
-      }
-
-      // Verificar que no tenga citas agendadas
+      // Verificar que no tenga citas agendadas futuras
       const tieneCitas = await this.repository.tieneCitasAgendadas(id);
 
       if (tieneCitas) {
         throw new TrabajadoraWithAppointmentsError();
+      }
+
+      const cantidadActivas = await this.repository.contarActivas();
+
+      if (cantidadActivas <= 1) {
+        throw new LastActiveTrabajadoraError();
       }
     }
 

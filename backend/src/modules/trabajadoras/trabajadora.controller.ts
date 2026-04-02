@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { TrabajadoraService } from './trabajadora.service';
 import { TrabajadoraRepository } from './trabajadora.repository';
+import { Rol } from '../../../generated/prisma/client';
 
 const repository = new TrabajadoraRepository();
 const service = new TrabajadoraService(repository);
@@ -34,7 +35,7 @@ export const listarTrabajadoras = async (
   next: NextFunction
 ) => {
   try {
-    const rol = req.user?.rol || 'TRABAJADORA';
+    const rol: Rol = req.user?.rol === 'ADMIN' ? Rol.ADMIN : Rol.TRABAJADORA;
     const result = await service.listar(rol);
 
     res.status(200).json({

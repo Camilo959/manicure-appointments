@@ -23,7 +23,6 @@ trabajadoras/
 ├── trabajadora.routes.ts         # Definición de rutas
 ├── trabajadora.validation.ts     # Validaciones con Zod
 ├── trabajadora.errors.ts         # Errores personalizados
-├── trabajadora.types.ts          # TypeScript types/interfaces
 └── README.md                     # Esta documentación
 ```
 
@@ -78,7 +77,7 @@ trabajadoras/
 | `GET` | `/api/trabajadoras/:id` | Obtener por ID | ADMIN |
 | `PUT` | `/api/trabajadoras/:id` | Actualizar trabajadora | ADMIN |
 | `PATCH` | `/api/trabajadoras/:id/estado` | Cambiar estado (activa/inactiva) | ADMIN |
-| `DELETE` | `/api/trabajadoras/:id` | Soft delete (desactivar) | ADMIN |
+| `DELETE` | `/api/trabajadoras/:id` | Soft delete (desactivar). Equivale a `PATCH /api/trabajadoras/:id/estado` con `activa: false` | ADMIN |
 
 ## 🔐 Reglas de negocio
 
@@ -99,7 +98,7 @@ trabajadoras/
 
 ⚠️ **No se puede desactivar si**:
 - Es la única trabajadora activa en el sistema
-- Tiene citas pendientes/confirmadas/reprogramadas
+- Tiene citas futuras en estado pendiente/confirmada/reprogramada
 
 ✅ Al desactivar, también se desactiva el `User` asociado  
 
@@ -384,4 +383,5 @@ Al agregar nuevas features:
 ---
 
 **Autor**: Backend Team  
-**Última actualización**: 2026-02-11
+**Versión**: 1.1.0  
+**Última actualización**: 2026-04-01

@@ -1,5 +1,6 @@
 import prisma from '../../config/prisma';
 import type { CrearTrabajadoraInput, ActualizarTrabajadoraInput } from './trabajadora.validation';
+import { TrabajadoraNotFoundError } from './trabajadora.errors';
 
 /**
  * Repositorio para operaciones de base de datos de Trabajadoras
@@ -162,7 +163,7 @@ export class TrabajadoraRepository {
       });
 
       if (!trabajadora) {
-        throw new Error('Trabajadora no encontrada');
+        throw new TrabajadoraNotFoundError(id);
       }
 
       // 2. Actualizar usuario si hay cambios en email o password
@@ -221,7 +222,7 @@ export class TrabajadoraRepository {
       });
 
       if (!trabajadora) {
-        throw new Error('Trabajadora no encontrada');
+        throw new TrabajadoraNotFoundError(id);
       }
 
       // 2. Actualizar usuario
@@ -259,12 +260,15 @@ export class TrabajadoraRepository {
   /**
    * Verificar si una trabajadora tiene citas agendadas
    */
-  async tieneCitasAgendadas(id: string) {
+  async tieneCitasAgendadas(id: string): Promise<boolean> {
     const count = await prisma.cita.count({
       where: {
         trabajadoraId: id,
         estado: {
           in: ['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA'],
+        },
+        fechaInicio: {
+          gt: new Date(),
         },
       },
     });

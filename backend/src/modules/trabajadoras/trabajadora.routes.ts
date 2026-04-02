@@ -86,7 +86,7 @@ router.patch(
 
 /**
  * @route   DELETE /api/trabajadoras/:id
- * @desc    Eliminar (soft delete) una trabajadora
+ * @desc    Eliminar (soft delete) una trabajadora; equivalente a PATCH /api/trabajadoras/:id/estado con { activa: false }. Ambos endpoints coexisten por conveniencia RESTful.
  * @access  Private - Solo ADMIN
  */
 router.delete(
