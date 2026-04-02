@@ -51,7 +51,7 @@ Buscar en la consola:
 # POST http://localhost:3000/api/citas
 {
   "nombreCliente": "María López",
-  "telefono": "+56912345678",
+  "telefono": "+573001234567",
   "email": "tu-email@gmail.com",  👈 USA TU EMAIL
   "trabajadoraId": "uuid-trabajadora",
   "fecha": "2026-02-20",

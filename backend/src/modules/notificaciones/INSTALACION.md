@@ -69,7 +69,7 @@ POST http://localhost:3000/api/citas
 ```json
 {
   "nombreCliente": "María López",
-  "telefono": "+56912345678",
+  "telefono": "+573001234567",
   "email": "tu-email@gmail.com",
   "trabajadoraId": "uuid-trabajadora",
   "fecha": "2026-02-20",

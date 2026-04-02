@@ -62,7 +62,7 @@ model Cita {
 ```json
 {
   "nombreCliente": "María González",
-  "telefono": "+56912345678",
+  "telefono": "+573001234567",
   "email": "maria@example.com",  // ✅ OPCIONAL
   "trabajadoraId": "uuid-trabajadora",
   "fecha": "2026-03-15",  // YYYY-MM-DD
@@ -85,7 +85,7 @@ model Cita {
     "numeroConfirmacion": "20260315-4782",
     "cliente": {
       "nombre": "María González",
-      "telefono": "+56912345678",
+      "telefono": "+573001234567",
       "email": "maria@example.com"
     },
     "trabajadora": {
@@ -637,7 +637,7 @@ describe('Prevención de overbooking', () => {
   test('dos requests simultáneos - solo uno debe pasar', async () => {
     const datos = {
       nombreCliente: 'Test',
-      telefono: '+56912345678',
+      telefono: '+573001234567',
       trabajadoraId: 'uuid-trabajadora',
       fecha: '2026-03-15',
       horaInicio: '10:00',
@@ -683,7 +683,7 @@ describe('POST /api/citas', () => {
     // Intentar crear segunda cita solapada
     const res = await request(app)
       .post('/api/citas')
-      .send({ ...datos, telefono: '+56987654321' });
+      .send({ ...datos, telefono: '+573109876543' });
 
     expect(res.status).toBe(409);
     expect(res.body.error).toBe('SOLAPAMIENTO_CITA');
@@ -838,7 +838,7 @@ curl -X POST http://localhost:3000/api/citas \
   -H "Content-Type: application/json" \
   -d '{
     "nombreCliente": "María Test",
-    "telefono": "+56912345678",
+    "telefono": "+573001234567",
     "trabajadoraId": "uuid-valido",
     "fecha": "2026-03-20",
     "horaInicio": "15:00",

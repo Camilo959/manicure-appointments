@@ -70,14 +70,14 @@ export function extraerHora(fecha: Date): string {
 }
 
 /**
- * Formatea un precio a formato de moneda chilena
+ * Formatea un precio a formato de moneda colombiana
  * 
  * @example
  * formatearPrecio(25000)
  * // => "$25.000"
  */
 export function formatearPrecio(precio: number): string {
-  return `$${precio.toLocaleString('es-CL')}`;
+  return `$${precio.toLocaleString('es-CO')}`;
 }
 
 /**

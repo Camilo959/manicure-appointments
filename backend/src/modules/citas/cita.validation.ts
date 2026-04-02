@@ -1,10 +1,10 @@
 import { z } from 'zod';
 
 /**
- * Regex para validar teléfono chileno (ejemplo)
- * Ajustar según tu país
+ * Regex para validar teléfono colombiano móvil (ejemplo)
+ * Formatos válidos: +573001234567 o 3001234567
  */
-const TELEFONO_REGEX = /^(\+?56)?[9]\d{8}$/;
+const TELEFONO_REGEX = /^(\+?57)?3\d{9}$/;
 
 /**
  * Regex para formato de hora HH:mm
@@ -16,7 +16,7 @@ const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
  */
 const telefonoValidation = z
   .string({ message: 'El teléfono es obligatorio' })
-  .regex(TELEFONO_REGEX, 'Formato de teléfono inválido. Ej: +56912345678')
+  .regex(TELEFONO_REGEX, 'Formato de teléfono inválido. Ej: +573001234567')
   .trim();
 
 /**

@@ -6,7 +6,7 @@ Sistema backend completo para la gestión de citas en un salón de manicure. Per
 
 El sistema está desarrollado en **TypeScript** con **Express.js 5** y **PostgreSQL** (vía Prisma ORM), implementando autenticación JWT, control de acceso por roles, notificaciones por correo electrónico, validación exhaustiva de datos y protección contra condiciones de carrera mediante transacciones serializables.
 
-Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha y moneda) está localizada en **español (Chile)**.
+Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha y moneda) está localizada en **español (Colombia)**.
 
 ---
 
@@ -62,7 +62,7 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
   - `CITA_CANCELADA` – al cancelar una cita.
 - Degradación elegante: si la API key no está configurada, registra advertencia pero no bloquea el flujo.
 - Envío asíncrono: no bloquea la respuesta al cliente.
-- Formato localizado: fechas en español, precios en pesos chilenos (CLP).
+- Formato localizado: fechas en español, precios en pesos colombianos (COP).
 
 ### Manejo de Errores
 - Clases de error tipadas con códigos HTTP específicos:
@@ -74,7 +74,7 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 ### Validación de Datos
 - Esquemas **Zod** para todos los endpoints.
 - Middleware `validate` que valida body, query y params automáticamente.
-- Validaciones específicas: formato de teléfono chileno (`+56 9XXXXXXXX`), formato de fecha (`YYYY-MM-DD`), formato de hora (`HH:mm`), UUIDs.
+- Validaciones específicas: formato de teléfono colombiano (`+57 3XXXXXXXXX`), formato de fecha (`YYYY-MM-DD`), formato de hora (`HH:mm`), UUIDs.
 
 ---
 

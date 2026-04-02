@@ -40,7 +40,7 @@ test('should create a new appointment', async () => {
         .post('/api/citas') // Adjust the endpoint as necessary
         .send({
             nombreCliente: 'Cliente Test',
-            telefono: '+56912345678',
+            telefono: '+573001234567',
             email: 'cliente.test@example.com',
             trabajadoraId: trabajadora.id,
             fecha,
@@ -61,7 +61,7 @@ test('should create a new appointment', async () => {
             }),
             cliente: expect.objectContaining({
                 nombre: 'Cliente Test',
-                telefono: '+56912345678',
+                telefono: '+573001234567',
             }),
             servicios: expect.arrayContaining([
                 expect.objectContaining({
