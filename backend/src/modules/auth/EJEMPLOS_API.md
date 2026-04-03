@@ -4,12 +4,11 @@
 
 El módulo de autenticación proporciona endpoints para:
 - **Login**: Obtener un token JWT con credenciales
-- **Register**: Registro público limitado (crea solo User con rol TRABAJADORA)
 - **Me**: Obtener información del usuario autenticado
 - **Logout**: Cerrar sesión (opcional con JWT stateless)
 
-> Nota: El flujo recomendado para creación completa de trabajadoras es `POST /api/trabajadoras`
-> porque crea `User + Trabajadora` en transacción.
+> Nota: La gestión de personal (ADMIN y TRABAJADORA) se realiza por `POST /api/usuarios`.
+> `POST /api/trabajadoras` se mantiene por compatibilidad para alta directa de trabajadoras.
 
 ## 📝 Ejemplos de peticiones
 
@@ -235,45 +234,7 @@ curl -X GET http://localhost:3000/api/auth/me \
 
 ---
 
-### 3. Register (Registro público limitado)
-
-```bash
-POST /api/auth/register
-```
-
-**Request:**
-
-```json
-{
-  "nombre": "Ana Ruiz",
-  "email": "ana.ruiz@example.com",
-  "password": "Password123"
-}
-```
-
-**Response exitosa (201):**
-
-```json
-{
-  "success": true,
-  "message": "Usuario registrado exitosamente",
-  "data": {
-    "user": {
-      "id": "880e8400-e29b-41d4-a716-446655440003",
-      "nombre": "Ana Ruiz",
-      "email": "ana.ruiz@example.com",
-      "rol": "TRABAJADORA"
-    },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-Este endpoint solo crea la entidad `User`. Para crear una trabajadora completa se debe usar `POST /api/trabajadoras`.
-
----
-
-### 4. Cerrar sesión (Logout)
+### 3. Cerrar sesión (Logout)
 
 ```bash
 POST /api/auth/logout
@@ -834,4 +795,4 @@ axios.interceptors.response.use(
 ---
 
 **Última actualización**: Abril 2026  
-**Versión**: 1.1.0
+**Versión**: 1.2.0

@@ -35,7 +35,7 @@ auth/
        │
        ▼
 ┌─────────────────┐
-│   Middlewares   │ Validation (login y register)
+│   Middlewares   │ Validation (login)
 │                 │ Auth (solo /me y /logout)
 └────────┬────────┘
          │
@@ -74,13 +74,11 @@ auth/
 | Método | Ruta | Descripción | Acceso |
 |--------|------|-------------|--------|
 | `POST` | `/api/auth/login` | Iniciar sesión | Público |
-| `POST` | `/api/auth/register` | Registro público limitado (solo User con rol TRABAJADORA) | Público |
 | `GET` | `/api/auth/me` | Obtener usuario autenticado | Privado |
 | `POST` | `/api/auth/logout` | Cerrar sesión | Privado |
 
-> Nota: El flujo recomendado para alta completa de trabajadoras es `POST /api/trabajadoras`,
-> ya que crea `User + Trabajadora` en transacción. `POST /api/auth/register` no crea la
-> entidad `Trabajadora` asociada.
+> Nota: La gestión de personal (ADMIN y TRABAJADORA) se realiza por `POST /api/usuarios`.
+> `POST /api/trabajadoras` se mantiene por compatibilidad para alta directa de trabajadoras.
 
 ## 🔐 Sistema de autenticación
 
@@ -190,8 +188,6 @@ async login(req: Request, res: Response): Promise<void> {
 - Verificar contraseñas con bcrypt
 - Generar tokens JWT
 - Aplicar reglas de negocio
-- Hash de contraseñas (para creación de usuarios)
-- Validar disponibilidad de emails
 
 **NO hace**:
 - ❌ Manejo de req/res
@@ -220,9 +216,7 @@ async login(credentials: LoginInput): Promise<LoginResponse> {
 **Responsabilidades**:
 - Ejecutar queries de Prisma
 - Buscar usuarios por email o ID
-- Verificar existencia de emails
 - Buscar usuarios con relaciones (trabajadora)
-- Contar usuarios por rol
 
 **NO hace**:
 - ❌ Validaciones de negocio
@@ -534,32 +528,6 @@ describe('AuthService', () => {
     });
   });
 
-  describe('hashPassword', () => {
-    test('debe hashear contraseña correctamente', async () => {
-      const password = 'password123';
-      const hashed = await authService.hashPassword(password);
-      
-      expect(hashed).not.toBe(password);
-      expect(hashed.length).toBeGreaterThan(20);
-    });
-  });
-
-  describe('verifyPassword', () => {
-    test('debe retornar true con contraseña correcta', async () => {
-      const password = 'password123';
-      const hashed = await authService.hashPassword(password);
-      const isValid = await authService.verifyPassword(password, hashed);
-      
-      expect(isValid).toBe(true);
-    });
-
-    test('debe retornar false con contraseña incorrecta', async () => {
-      const hashed = await authService.hashPassword('password123');
-      const isValid = await authService.verifyPassword('wrongpassword', hashed);
-      
-      expect(isValid).toBe(false);
-    });
-  });
 });
 ```
 
@@ -648,4 +616,4 @@ Logging de eventos de autenticación:
 ---
 
 **Última actualización**: Abril 2026  
-**Versión**: 1.1.0
+**Versión**: 1.2.0

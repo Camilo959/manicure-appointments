@@ -9,6 +9,7 @@ import servicioRoutes from './modules/servicios/servicio.routes';
 import disponibilidadRoutes from './modules/citas/disponibilidad.routes';
 import trabajadoraRoutes from './modules/trabajadoras/trabajadora.routes';
 import citaRoutes from './modules/citas/cita.routes';
+import usuarioRoutes from './modules/usuarios/usuario.routes';
 
 export const app = express();
 
@@ -25,6 +26,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/trabajadoras', trabajadoraRoutes);
+app.use('/api/usuarios', usuarioRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/citas', citaRoutes);
 
