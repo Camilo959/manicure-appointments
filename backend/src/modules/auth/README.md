@@ -78,9 +78,9 @@ auth/
 | `GET` | `/api/auth/me` | Obtener usuario autenticado | Privado |
 | `POST` | `/api/auth/logout` | Cerrar sesión | Privado |
 
-> Nota: El flujo recomendado para alta completa de trabajadoras es `POST /api/trabajadoras`,
-> ya que crea `User + Trabajadora` en transacción. `POST /api/auth/register` no crea la
-> entidad `Trabajadora` asociada.
+> Nota: La gestión de personal (ADMIN y TRABAJADORA) se realiza por `POST /api/usuarios`.
+> `POST /api/trabajadoras` se mantiene por compatibilidad para alta directa de trabajadoras.
+> `POST /api/auth/register` no crea la entidad `Trabajadora` asociada.
 
 ## 🔐 Sistema de autenticación
 

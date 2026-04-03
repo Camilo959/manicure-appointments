@@ -8,8 +8,8 @@ El módulo de autenticación proporciona endpoints para:
 - **Me**: Obtener información del usuario autenticado
 - **Logout**: Cerrar sesión (opcional con JWT stateless)
 
-> Nota: El flujo recomendado para creación completa de trabajadoras es `POST /api/trabajadoras`
-> porque crea `User + Trabajadora` en transacción.
+> Nota: La gestión de personal (ADMIN y TRABAJADORA) se realiza por `POST /api/usuarios`.
+> `POST /api/trabajadoras` se mantiene por compatibilidad para alta directa de trabajadoras.
 
 ## 📝 Ejemplos de peticiones
 
@@ -269,7 +269,7 @@ POST /api/auth/register
 }
 ```
 
-Este endpoint solo crea la entidad `User`. Para crear una trabajadora completa se debe usar `POST /api/trabajadoras`.
+Este endpoint solo crea la entidad `User`. Para gestión de personal usa `POST /api/usuarios`.
 
 ---
 

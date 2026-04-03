@@ -11,6 +11,7 @@ import { CitaError } from '../modules/citas/cita.errors';
 import { AuthError } from '../modules/auth/auth.errors';
 import { ServicioError } from '../modules/servicios/servicio.errors';
 import { TrabajadoraError } from '../modules/trabajadoras/trabajadora.errors';
+import { UsuarioError } from '../modules/usuarios/usuario.errors';
 
 /**
  * Clase base para errores de la aplicación
@@ -126,6 +127,17 @@ export function errorHandler(
 
 	// Errores de Autenticación
 	if (error instanceof AuthError) {
+		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+			error: error.code,
+			...(config.nodeEnv === 'development' && { stack: error.stack }),
+		});
+		return;
+	}
+
+	// Errores de Usuarios
+	if (error instanceof UsuarioError) {
 		res.status(error.statusCode).json({
 			success: false,
 			message: error.message,

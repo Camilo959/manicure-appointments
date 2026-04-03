@@ -72,12 +72,15 @@ trabajadoras/
 
 | Método | Ruta | Descripción | Acceso |
 |--------|------|-------------|--------|
-| `POST` | `/api/trabajadoras` | Crear trabajadora + user | ADMIN |
+| `POST` | `/api/trabajadoras` | Crear trabajadora + user (compatibilidad) | ADMIN |
 | `GET` | `/api/trabajadoras` | Listar trabajadoras | ADMIN, TRABAJADORA |
 | `GET` | `/api/trabajadoras/:id` | Obtener por ID | ADMIN |
 | `PUT` | `/api/trabajadoras/:id` | Actualizar trabajadora | ADMIN |
 | `PATCH` | `/api/trabajadoras/:id/estado` | Cambiar estado (activa/inactiva) | ADMIN |
 | `DELETE` | `/api/trabajadoras/:id` | Soft delete (desactivar). Equivale a `PATCH /api/trabajadoras/:id/estado` con `activa: false` | ADMIN |
+
+> Nota: El flujo canónico para alta de personal es `POST /api/usuarios` (ADMIN/TRABAJADORA).
+> Este módulo mantiene `POST /api/trabajadoras` por compatibilidad y foco operativo.
 
 ## 🔐 Reglas de negocio
 

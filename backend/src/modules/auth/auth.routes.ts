@@ -47,7 +47,8 @@ router.post('/login', validate(loginSchema), login);
  * - Siempre crea un User con rol TRABAJADORA
  * - No crea la entidad Trabajadora asociada
  *
- * Para creación completa (User + Trabajadora), usar POST /api/trabajadoras.
+ * Para gestión de personal (ADMIN y TRABAJADORA), usar POST /api/usuarios.
+ * POST /api/trabajadoras se mantiene por compatibilidad para alta directa de trabajadoras.
  * 
  * Response:
  * {
