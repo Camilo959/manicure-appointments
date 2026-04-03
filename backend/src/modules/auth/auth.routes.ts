@@ -5,10 +5,10 @@
  */
 
 import { Router } from 'express';
-import { getMe, login, logout, register } from './auth.controller';
+import { getMe, login, logout } from './auth.controller';
 import { authenticate } from '../../middlewares/auth.middleware';
 import { validate } from '../../middlewares/validate.middleware';
-import { loginSchema, registerSchema } from './auth.validation';
+import { loginSchema } from './auth.validation';
 
 const router = Router();
 
@@ -38,34 +38,6 @@ const router = Router();
  * }
  */
 router.post('/login', validate(loginSchema), login);
-
-/**
- * POST /auth/register
- * Registrar un nuevo usuario
- * 
- * Endpoint de registro público limitado:
- * - Siempre crea un User con rol TRABAJADORA
- * - No crea la entidad Trabajadora asociada
- *
- * Para gestión de personal (ADMIN y TRABAJADORA), usar POST /api/usuarios.
- * POST /api/trabajadoras se mantiene por compatibilidad para alta directa de trabajadoras.
- * 
- * Response:
- * {
- *   "success": true,
- *   "message": "Usuario registrado exitosamente",
- *   "data": {
- *     "user": {
- *       "id": "uuid",
- *       "nombre": "María García",
- *       "email": "maria@example.com",
- *       "rol": "TRABAJADORA"
- *     },
- *     "token": "jwt_token_here"
- *   }
- * }
- */
-router.post('/register', validate(registerSchema), register);
 
 /**
  * GET /auth/me

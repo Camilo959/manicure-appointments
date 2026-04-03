@@ -31,28 +31,6 @@ export const login = async (
 };
 
 /**
- * POST /auth/register
- * Registrar un nuevo usuario
- */
-export const register = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-): Promise<void> => {
-    try {
-        const result = await authService.register(req.body);
-
-        res.status(201).json({
-            success: true,
-            message: 'Usuario registrado exitosamente',
-            data: result,
-        });
-    } catch (error) {
-        next(error);
-    }
-};
-
-/**
  * GET /auth/me
  * Obtener información del usuario autenticado
  */

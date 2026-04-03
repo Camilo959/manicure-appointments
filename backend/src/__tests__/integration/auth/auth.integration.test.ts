@@ -4,63 +4,33 @@ import prisma from '../../../config/prisma';
 import bcrypt from 'bcryptjs';
 
 describe('Auth Integration Tests', () => {
-    it('should create a new user and return a token', async () => {
-        const unique = Date.now();
-
+    it('should return 404 for removed register endpoint', async () => {
         const response = await request(app)
             .post('/api/auth/register')
             .send({
-                nombre: 'Test User',
-                email: `test.${unique}@example.com`,
+                nombre: 'Legacy User',
+                email: `legacy.${Date.now()}@example.com`,
                 password: 'Password123',
             });
 
-        expect(response.status).toBe(201);
-        expect(response.body).toMatchObject({
-            success: true,
-            message: 'Usuario registrado exitosamente',
-        });
-        expect(response.body.data).toEqual(
-            expect.objectContaining({
-                token: expect.any(String),
-                user: expect.objectContaining({
-                    email: `test.${unique}@example.com`,
-                    nombre: 'Test User',
-                    rol: 'TRABAJADORA',
-                }),
-            })
-        );
-    });
-
-    it('should force TRABAJADORA role when role is sent in payload', async () => {
-        const unique = Date.now();
-
-        const response = await request(app)
-            .post('/api/auth/register')
-            .send({
-                nombre: 'Role Test User',
-                email: `force-role.${unique}@example.com`,
-                password: 'Password123',
-                rol: 'ADMIN',
-            });
-
-        expect(response.status).toBe(201);
-        expect(response.body.data.user.rol).toBe('TRABAJADORA');
+        expect(response.status).toBe(404);
     });
 
     it('should log in an existing user and return a token', async () => {
         const unique = Date.now();
         const email = `login.${unique}@example.com`;
         const password = 'Password123';
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-        await request(app)
-            .post('/api/auth/register')
-            .send({
+        await prisma.user.create({
+            data: {
                 nombre: 'Login User',
                 email,
-                password,
-            })
-            .expect(201);
+                password: hashedPassword,
+                rol: 'TRABAJADORA',
+                activo: true,
+            },
+        });
 
         const response = await request(app)
             .post('/api/auth/login')
@@ -79,6 +49,7 @@ describe('Auth Integration Tests', () => {
                 token: expect.any(String),
                 user: expect.objectContaining({
                     email,
+                    rol: 'TRABAJADORA',
                 }),
             })
         );

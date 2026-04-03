@@ -4,7 +4,6 @@
 
 El módulo de autenticación proporciona endpoints para:
 - **Login**: Obtener un token JWT con credenciales
-- **Register**: Registro público limitado (crea solo User con rol TRABAJADORA)
 - **Me**: Obtener información del usuario autenticado
 - **Logout**: Cerrar sesión (opcional con JWT stateless)
 
@@ -235,45 +234,7 @@ curl -X GET http://localhost:3000/api/auth/me \
 
 ---
 
-### 3. Register (Registro público limitado)
-
-```bash
-POST /api/auth/register
-```
-
-**Request:**
-
-```json
-{
-  "nombre": "Ana Ruiz",
-  "email": "ana.ruiz@example.com",
-  "password": "Password123"
-}
-```
-
-**Response exitosa (201):**
-
-```json
-{
-  "success": true,
-  "message": "Usuario registrado exitosamente",
-  "data": {
-    "user": {
-      "id": "880e8400-e29b-41d4-a716-446655440003",
-      "nombre": "Ana Ruiz",
-      "email": "ana.ruiz@example.com",
-      "rol": "TRABAJADORA"
-    },
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }
-}
-```
-
-Este endpoint solo crea la entidad `User`. Para gestión de personal usa `POST /api/usuarios`.
-
----
-
-### 4. Cerrar sesión (Logout)
+### 3. Cerrar sesión (Logout)
 
 ```bash
 POST /api/auth/logout
@@ -834,4 +795,4 @@ axios.interceptors.response.use(
 ---
 
 **Última actualización**: Abril 2026  
-**Versión**: 1.1.0
+**Versión**: 1.2.0

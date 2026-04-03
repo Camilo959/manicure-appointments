@@ -25,8 +25,4 @@ Este módulo centraliza la creación de cuentas de staff y evita que `auth` asum
 ## 🔄 Compatibilidad
 
 - `POST /api/trabajadoras` sigue disponible por compatibilidad.
-- `POST /api/auth/register` sigue disponible temporalmente, pero es limitado y no crea perfil de `Trabajadora`.
-
-## 🧭 Próximo paso (PR2)
-
-- Retirar/deprecar de forma definitiva `POST /api/auth/register` para dejar `auth` únicamente como módulo de autenticación.
+- `POST /api/auth/register` fue retirado para dejar `auth` únicamente como módulo de autenticación.

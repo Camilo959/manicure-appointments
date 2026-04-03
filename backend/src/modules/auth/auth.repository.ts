@@ -5,7 +5,7 @@
  */
 
 import prisma from '../../config/prisma';
-import { User, Rol } from '../../../generated/prisma/client';
+import { User } from '../../../generated/prisma/client';
 
 
 /**
@@ -70,42 +70,6 @@ export class AuthRepository {
         });
     }
 
-    /**
-     * Verificar si existe un usuario con el email dado
-     * 
-     * @param email - Email a verificar
-     * @returns true si existe, false si no
-     */
-    async emailExists(email: string): Promise<boolean> {
-        const count = await prisma.user.count({
-            where: { email },
-        });
-
-        return count > 0;
-    }
-
-    /**
-     * Crear un nuevo usuario
-     * 
-     * @param data - Datos del usuario a crear
-     * @returns Usuario creado
-     */
-    async createUser(data: {
-        nombre: string;
-        email: string;
-        password: string;
-        rol: Rol;
-    }): Promise<User> {
-        return prisma.user.create({
-            data: {
-                nombre: data.nombre,
-                email: data.email,
-                password: data.password,
-                rol: data.rol,
-                activo: true,
-            },
-        });
-    }
 }
 
 // Exportar instancia única del repositorio
