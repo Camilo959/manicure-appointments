@@ -15,6 +15,10 @@ Este módulo centraliza la creación de cuentas de staff y evita que `auth` asum
 |--------|------|-------------|--------|
 | `POST` | `/api/usuarios` | Crear usuario de staff (`ADMIN` o `TRABAJADORA`) | ADMIN |
 
+## ✅ Flujo canónico
+
+- **Flujo canónico de alta de personal**: `POST /api/usuarios`.
+
 ## 🔐 Reglas de negocio
 
 - Si `rol = ADMIN`: se crea solo `User`.
@@ -24,5 +28,5 @@ Este módulo centraliza la creación de cuentas de staff y evita que `auth` asum
 
 ## 🔄 Compatibilidad
 
-- `POST /api/trabajadoras` sigue disponible por compatibilidad.
+- **Ruta de compatibilidad**: `POST /api/trabajadoras` para alta directa de trabajadoras.
 - `POST /api/auth/register` fue retirado para dejar `auth` únicamente como módulo de autenticación.

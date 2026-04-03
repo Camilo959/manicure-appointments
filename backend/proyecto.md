@@ -23,11 +23,20 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 ## Funcionalidades
 
 ### Autenticación y Autorización
-- Registro de usuarios con roles ADMIN o TRABAJADORA.
+- El módulo `auth` quedó enfocado en autenticación: login, validación de token y endpoint `/auth/me`.
+- La creación de personal se centralizó en el módulo `usuarios` (`POST /api/usuarios`, solo ADMIN).
 - Login con email/password → JWT con expiración configurable (por defecto 7 días).
 - Middleware de autenticación (`authenticate`) y autorización por roles (`requireAdmin`, `requireStaff`).
 - Contraseñas hasheadas con bcrypt (salt rounds configurables).
 - Requisitos de contraseña: mínimo 8 caracteres, mayúscula, minúscula y dígito.
+
+### Gestión de Usuarios (Módulo `usuarios`)
+- Alta de personal del negocio (ADMIN y TRABAJADORA) mediante endpoint protegido para ADMIN.
+- Creación transaccional:
+  - Si `rol = ADMIN`: crea solo `User`.
+  - Si `rol = TRABAJADORA`: crea `User + Trabajadora`.
+- Validación de email único y password fuerte.
+- Se agregó manejo de errores tipados para este módulo en el middleware global.
 
 ### Gestión de Citas (Módulo `citas`)
 - **Agendamiento público** (`POST /api/citas`): cualquier persona puede agendar sin autenticarse.
@@ -49,6 +58,7 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 - Conteo de citas por trabajadora en listado.
 - Soft-delete con protección: no se puede desactivar la última trabajadora activa.
 - Protección contra eliminación de trabajadoras con citas activas.
+- `POST /api/trabajadoras` se mantiene por compatibilidad operativa, pero el flujo canónico de alta de personal es `POST /api/usuarios`.
 
 ### Gestión de Clientes (Módulo `clientes`)
 - Creación implícita durante el agendamiento de citas (upsert por teléfono).
@@ -153,9 +163,10 @@ backend/
 │   ├── types/                    # Tipos compartidos
 │   ├── utils/                    # Utilidades (JWT, etc.)
 │   ├── modules/
-│   │   ├── auth/                 # Autenticación y registro
+│   │   ├── auth/                 # Autenticación (login / me / logout)
 │   │   ├── citas/                # Agendamiento y disponibilidad
 │   │   ├── servicios/            # CRUD de servicios
+│   │   ├── usuarios/             # Gestión de personal (ADMIN/TRABAJADORA)
 │   │   ├── trabajadoras/         # CRUD de trabajadoras
 │   │   ├── clientes/             # (vacío, creación implícita)
 │   │   └── notificaciones/       # Emails con Resend
@@ -178,10 +189,10 @@ backend/
 | Método   | Ruta                              | Acceso       | Descripción                          |
 |----------|-----------------------------------|--------------|--------------------------------------|
 | `GET`    | `/health`                         | Público      | Health check                         |
-| `POST`   | `/api/auth/register`              | Público      | Registrar usuario                    |
 | `POST`   | `/api/auth/login`                 | Público      | Iniciar sesión                       |
 | `GET`    | `/api/auth/me`                    | Autenticado  | Obtener usuario actual               |
 | `POST`   | `/api/auth/logout`                | Autenticado  | Cerrar sesión                        |
+| `POST`   | `/api/usuarios`                   | ADMIN        | Crear usuario de staff (ADMIN/TRABAJADORA) |
 | `POST`   | `/api/citas`                      | Público      | Agendar cita                         |
 | `GET`    | `/api/disponibilidad`             | Autenticado  | Consultar disponibilidad             |
 | `POST`   | `/api/servicios`                  | ADMIN        | Crear servicio                       |
@@ -189,12 +200,14 @@ backend/
 | `GET`    | `/api/servicios/:id`              | ADMIN        | Obtener servicio                     |
 | `PUT`    | `/api/servicios/:id`              | ADMIN        | Actualizar servicio                  |
 | `PATCH`  | `/api/servicios/:id/estado`       | ADMIN        | Cambiar estado de servicio           |
-| `POST`   | `/api/trabajadoras`               | ADMIN        | Crear trabajadora                    |
+| `POST`   | `/api/trabajadoras`               | ADMIN        | Crear trabajadora (compatibilidad)   |
 | `GET`    | `/api/trabajadoras`               | Staff        | Listar trabajadoras                  |
 | `GET`    | `/api/trabajadoras/:id`           | ADMIN        | Obtener trabajadora                  |
 | `PUT`    | `/api/trabajadoras/:id`           | ADMIN        | Actualizar trabajadora               |
 | `PATCH`  | `/api/trabajadoras/:id/estado`    | ADMIN        | Cambiar estado de trabajadora        |
 | `DELETE` | `/api/trabajadoras/:id`           | ADMIN        | Eliminar trabajadora (soft-delete)   |
+
+> Nota operativa: `POST /api/auth/register` fue retirado para dejar `auth` únicamente como módulo de autenticación.
 
 ### Variables de Entorno
 
@@ -221,11 +234,11 @@ backend/
 - [ ] **Gestión completa de estados**: endpoints para marcar citas como `COMPLETADA`, `NO_ASISTIO`, `REPROGRAMADA`.
 
 ### Media Prioridad
-- [ ] **Restricción de registro**: el endpoint `POST /api/auth/register` es público y permite crear usuarios ADMIN – restringir para que solo un ADMIN pueda crear otros usuarios.
 - [ ] **Revocación de tokens**: implementar blacklist de JWT para invalidar tokens antes de su expiración (logout real).
 - [ ] **Gestión de días bloqueados**: crear endpoints para CRUD de `DiaBloqueado` (actualmente existe el modelo pero no hay rutas).
 - [ ] **Reprogramación de citas**: endpoint para cambiar fecha/hora de una cita existente.
 - [ ] **Ampliar cobertura de tests**: agregar tests unitarios para módulos de servicios y trabajadoras, y más tests de integración.
+- [ ] **Convergencia de onboarding**: evaluar retiro progresivo de `POST /api/trabajadoras` como ruta de compatibilidad y centralizar alta de staff en `POST /api/usuarios`.
 
 ### Baja Prioridad
 - [ ] **Paginación**: agregar paginación a listados de citas, servicios, trabajadoras y clientes.
@@ -252,3 +265,17 @@ npm run test:ci       # Tests con cobertura (CI)
 npm run prisma:seed   # Ejecutar datos semilla
 npm run test:db       # Probar conexión a base de datos
 ```
+
+---
+
+## Registro de Cambios Operativos (Abril 2026)
+
+- **PR1 - Staff + compatibilidad**:
+  - Se creó el módulo `usuarios` con endpoint `POST /api/usuarios` para crear personal (`ADMIN` y `TRABAJADORA`).
+  - Si el rol es `TRABAJADORA`, la creación de `User + Trabajadora` ocurre en una transacción.
+  - Se mantuvo `POST /api/trabajadoras` por compatibilidad.
+
+- **PR2 - Limpieza de auth**:
+  - Se retiró `POST /api/auth/register`.
+  - El módulo `auth` quedó enfocado en login, token, `/auth/me` y logout.
+  - Se ajustaron pruebas de integración y documentación de módulos para reflejar el nuevo flujo canónico.
