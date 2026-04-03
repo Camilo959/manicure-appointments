@@ -8,7 +8,12 @@ import bcrypt from 'bcryptjs';
 import { authRepository } from './auth.repository';
 import { generateToken } from '../../utils/token.utils';
 import { LoginInput, RegisterInput } from './auth.validation';
-import config from '../../config/env';
+import {
+    CredencialesInvalidasError,
+    EmailYaRegistradoError,
+    UsuarioInactivoError,
+    UsuarioNoEncontradoError,
+} from './auth.errors';
 
 /**
  * Respuesta exitosa de login
@@ -54,14 +59,14 @@ export class AuthService {
         const user = await authRepository.findActiveUserByEmail(email);
 
         if (!user) {
-            throw new Error('Credenciales inválidas');
+            throw new CredencialesInvalidasError();
         }
 
         // 2. Verificar contraseña
         const isPasswordValid = await this.verifyPassword(password, user.password);
 
         if (!isPasswordValid) {
-            throw new Error('Credenciales inválidas');
+            throw new CredencialesInvalidasError();
         }
 
         // 3. Generar token JWT
@@ -90,7 +95,7 @@ export class AuthService {
      * @throws Error si el email ya está en uso
      */
     async register(userData: RegisterInput): Promise<RegisterResponse> {
-        const { nombre, email, password, rol } = userData;
+        const { nombre, email, password } = userData;
 
         // 1. Validar que el email no esté en uso
         await this.validateEmailAvailable(email);
@@ -103,7 +108,7 @@ export class AuthService {
             nombre,
             email,
             password: hashedPassword,
-            rol,
+            rol: 'TRABAJADORA',
         });
 
         // 4. Generar token JWT
@@ -135,11 +140,30 @@ export class AuthService {
         const user = await authRepository.findUserById(userId);
 
         if (!user) {
-            throw new Error('Usuario no encontrado');
+            throw new UsuarioNoEncontradoError();
         }
 
         if (!user.activo) {
-            throw new Error('Usuario inactivo');
+            throw new UsuarioInactivoError();
+        }
+
+        if (user.rol === 'TRABAJADORA') {
+            const userWithTrabajadora = await authRepository.findUserWithTrabajadora(userId);
+
+            if (!userWithTrabajadora) {
+                throw new UsuarioNoEncontradoError();
+            }
+
+            return {
+                id: userWithTrabajadora.id,
+                nombre: userWithTrabajadora.nombre,
+                email: userWithTrabajadora.email,
+                rol: userWithTrabajadora.rol,
+                activo: userWithTrabajadora.activo,
+                ...(userWithTrabajadora.trabajadora && {
+                    trabajadoraId: userWithTrabajadora.trabajadora.id,
+                }),
+            };
         }
 
         return {
@@ -157,15 +181,8 @@ export class AuthService {
      * @param password - Contraseña en texto plano
      * @returns Contraseña encriptada
      */
-    async hashPassword(password: string): Promise<string> {
-        try {
-            const salt = await bcrypt.genSalt(config.bcrypt.saltRounds);
-            const hashedPassword = await bcrypt.hash(password, salt);
-            return hashedPassword;
-        } catch (error) {
-            console.error('❌ Error encriptando contraseña:', error);
-            throw new Error('Error al procesar contraseña');
-        }
+    private async hashPassword(password: string): Promise<string> {
+        return bcrypt.hash(password, 10);
     }
 
     /**
@@ -175,14 +192,8 @@ export class AuthService {
      * @param hashedPassword - Contraseña encriptada
      * @returns true si coinciden, false si no
      */
-    async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-        try {
-            const isValid = await bcrypt.compare(password, hashedPassword);
-            return isValid;
-        } catch (error) {
-            console.error('❌ Error verificando contraseña:', error);
-            return false;
-        }
+    private async verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
+        return bcrypt.compare(password, hashedPassword);
     }
 
     /**
@@ -195,7 +206,7 @@ export class AuthService {
         const exists = await authRepository.emailExists(email);
 
         if (exists) {
-            throw new Error('El email ya está registrado');
+            throw new EmailYaRegistradoError();
         }
     }
 }

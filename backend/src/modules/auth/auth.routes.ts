@@ -5,8 +5,10 @@
  */
 
 import { Router } from 'express';
-import { authController } from './auth.controller';
+import { getMe, login, logout, register } from './auth.controller';
 import { authenticate } from '../../middlewares/auth.middleware';
+import { validate } from '../../middlewares/validate.middleware';
+import { loginSchema, registerSchema } from './auth.validation';
 
 const router = Router();
 
@@ -35,19 +37,17 @@ const router = Router();
  *   }
  * }
  */
-router.post('/login', (req, res) => authController.login(req, res));
+router.post('/login', validate(loginSchema), login);
 
 /**
  * POST /auth/register
  * Registrar un nuevo usuario
  * 
- * Body:
- * {
- *   "nombre": "María García",
- *   "email": "maria@example.com",
- *   "password": "Password123",
- *   "rol": "TRABAJADORA"
- * }
+ * Endpoint de registro público limitado:
+ * - Siempre crea un User con rol TRABAJADORA
+ * - No crea la entidad Trabajadora asociada
+ *
+ * Para creación completa (User + Trabajadora), usar POST /api/trabajadoras.
  * 
  * Response:
  * {
@@ -64,7 +64,7 @@ router.post('/login', (req, res) => authController.login(req, res));
  *   }
  * }
  */
-router.post('/register', (req, res) => authController.register(req, res));
+router.post('/register', validate(registerSchema), register);
 
 /**
  * GET /auth/me
@@ -81,11 +81,12 @@ router.post('/register', (req, res) => authController.register(req, res));
  *     "nombre": "Admin",
  *     "email": "admin@example.com",
  *     "rol": "ADMIN",
- *     "activo": true
+ *     "activo": true,
+ *     "trabajadoraId": "uuid" // solo cuando existe relación trabajadora
  *   }
  * }
  */
-router.get('/me', authenticate, (req, res) => authController.getMe(req, res));
+router.get('/me', authenticate, getMe);
 
 /**
  * POST /auth/logout
@@ -100,6 +101,6 @@ router.get('/me', authenticate, (req, res) => authController.getMe(req, res));
  *   "message": "Sesión cerrada exitosamente"
  * }
  */
-router.post('/logout', authenticate, (req, res) => authController.logout(req, res));
+router.post('/logout', authenticate, logout);
 
 export default router;

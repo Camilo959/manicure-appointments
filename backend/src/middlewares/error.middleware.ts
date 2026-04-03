@@ -8,6 +8,8 @@
 import { Request, Response, NextFunction } from 'express';
 import { config } from '../config/env';
 import { CitaError } from '../modules/citas/cita.errors';
+import { AuthError } from '../modules/auth/auth.errors';
+import { ServicioError } from '../modules/servicios/servicio.errors';
 import { TrabajadoraError } from '../modules/trabajadoras/trabajadora.errors';
 
 /**
@@ -102,6 +104,28 @@ export function errorHandler(
 
 	// Errores de Trabajadoras
 	if (error instanceof TrabajadoraError) {
+		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+			error: error.code,
+			...(config.nodeEnv === 'development' && { stack: error.stack }),
+		});
+		return;
+	}
+
+	// Errores de Servicios
+	if (error instanceof ServicioError) {
+		res.status(error.statusCode).json({
+			success: false,
+			message: error.message,
+			error: error.code,
+			...(config.nodeEnv === 'development' && { stack: error.stack }),
+		});
+		return;
+	}
+
+	// Errores de Autenticación
+	if (error instanceof AuthError) {
 		res.status(error.statusCode).json({
 			success: false,
 			message: error.message,

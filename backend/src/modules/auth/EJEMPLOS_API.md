@@ -4,8 +4,12 @@
 
 El módulo de autenticación proporciona endpoints para:
 - **Login**: Obtener un token JWT con credenciales
+- **Register**: Registro público limitado (crea solo User con rol TRABAJADORA)
 - **Me**: Obtener información del usuario autenticado
 - **Logout**: Cerrar sesión (opcional con JWT stateless)
+
+> Nota: El flujo recomendado para creación completa de trabajadoras es `POST /api/trabajadoras`
+> porque crea `User + Trabajadora` en transacción.
 
 ## 📝 Ejemplos de peticiones
 
@@ -171,10 +175,13 @@ Authorization: Bearer <tu_token_jwt>
     "nombre": "María García",
     "email": "maria.garcia@example.com",
     "rol": "TRABAJADORA",
-    "activo": true
+    "activo": true,
+    "trabajadoraId": "770e8400-e29b-41d4-a716-446655440002"
   }
 }
 ```
+
+`trabajadoraId` se incluye únicamente cuando existe relación de `Trabajadora` asociada al usuario.
 
 **Errores posibles:**
 
@@ -228,7 +235,45 @@ curl -X GET http://localhost:3000/api/auth/me \
 
 ---
 
-### 3. Cerrar sesión (Logout)
+### 3. Register (Registro público limitado)
+
+```bash
+POST /api/auth/register
+```
+
+**Request:**
+
+```json
+{
+  "nombre": "Ana Ruiz",
+  "email": "ana.ruiz@example.com",
+  "password": "Password123"
+}
+```
+
+**Response exitosa (201):**
+
+```json
+{
+  "success": true,
+  "message": "Usuario registrado exitosamente",
+  "data": {
+    "user": {
+      "id": "880e8400-e29b-41d4-a716-446655440003",
+      "nombre": "Ana Ruiz",
+      "email": "ana.ruiz@example.com",
+      "rol": "TRABAJADORA"
+    },
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+}
+```
+
+Este endpoint solo crea la entidad `User`. Para crear una trabajadora completa se debe usar `POST /api/trabajadoras`.
+
+---
+
+### 4. Cerrar sesión (Logout)
 
 ```bash
 POST /api/auth/logout
@@ -788,5 +833,5 @@ axios.interceptors.response.use(
 
 ---
 
-**Última actualización**: Febrero 2026  
-**Versión**: 1.0.0
+**Última actualización**: Abril 2026  
+**Versión**: 1.1.0

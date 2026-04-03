@@ -19,16 +19,9 @@ export class AuthRepository {
      * @returns Usuario encontrado o null
      */
     async findUserByEmail(email: string): Promise<User | null> {
-        try {
-            const user = await prisma.user.findUnique({
-                where: { email },
-            });
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error buscando usuario por email:', error);
-            throw new Error('Error al buscar usuario');
-        }
+        return prisma.user.findUnique({
+            where: { email },
+        });
     }
 
     /**
@@ -38,16 +31,9 @@ export class AuthRepository {
      * @returns Usuario encontrado o null
      */
     async findUserById(id: string): Promise<User | null> {
-        try {
-            const user = await prisma.user.findUnique({
-                where: { id },
-            });
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error buscando usuario por ID:', error);
-            throw new Error('Error al buscar usuario');
-        }
+        return prisma.user.findUnique({
+            where: { id },
+        });
     }
 
     /**
@@ -59,19 +45,12 @@ export class AuthRepository {
      * @returns Usuario activo encontrado o null
      */
     async findActiveUserByEmail(email: string): Promise<User | null> {
-        try {
-            const user = await prisma.user.findFirst({
-                where: {
-                    email,
-                    activo: true,
-                },
-            });
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error buscando usuario activo:', error);
-            throw new Error('Error al buscar usuario');
-        }
+        return prisma.user.findFirst({
+            where: {
+                email,
+                activo: true,
+            },
+        });
     }
 
     /**
@@ -83,19 +62,12 @@ export class AuthRepository {
      * @returns Usuario con trabajadora o null
      */
     async findUserWithTrabajadora(userId: string) {
-        try {
-            const user = await prisma.user.findUnique({
-                where: { id: userId },
-                include: {
-                    trabajadora: true,
-                },
-            });
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error buscando usuario con trabajadora:', error);
-            throw new Error('Error al buscar usuario');
-        }
+        return prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                trabajadora: true,
+            },
+        });
     }
 
     /**
@@ -105,35 +77,11 @@ export class AuthRepository {
      * @returns true si existe, false si no
      */
     async emailExists(email: string): Promise<boolean> {
-        try {
-            const count = await prisma.user.count({
-                where: { email },
-            });
+        const count = await prisma.user.count({
+            where: { email },
+        });
 
-            return count > 0;
-        } catch (error) {
-            console.error('❌ Error verificando email:', error);
-            throw new Error('Error al verificar email');
-        }
-    }
-
-    /**
-     * Contar usuarios por rol
-     * 
-     * @param rol - Rol a contar
-     * @returns Número de usuarios con ese rol
-     */
-    async countUsersByRole(rol: Rol): Promise<number> {
-        try {
-            const count = await prisma.user.count({
-                where: { rol },
-            });
-
-            return count;
-        } catch (error) {
-            console.error('❌ Error contando usuarios por rol:', error);
-            throw new Error('Error al contar usuarios');
-        }
+        return count > 0;
     }
 
     /**
@@ -148,22 +96,15 @@ export class AuthRepository {
         password: string;
         rol: Rol;
     }): Promise<User> {
-        try {
-            const user = await prisma.user.create({
-                data: {
-                    nombre: data.nombre,
-                    email: data.email,
-                    password: data.password,
-                    rol: data.rol,
-                    activo: true,
-                },
-            });
-
-            return user;
-        } catch (error) {
-            console.error('❌ Error creando usuario:', error);
-            throw new Error('Error al crear usuario');
-        }
+        return prisma.user.create({
+            data: {
+                nombre: data.nombre,
+                email: data.email,
+                password: data.password,
+                rol: data.rol,
+                activo: true,
+            },
+        });
     }
 }
 

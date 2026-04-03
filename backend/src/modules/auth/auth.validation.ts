@@ -10,127 +10,98 @@ import { z } from 'zod';
  * Schema de validación para login
  */
 export const loginSchema = z.object({
-    email: z
-        .string({
-            message: 'El email es requerido',
-        })
-        .email({ message: 'El formato del email no es válido' })
-        .toLowerCase()
-        .trim(),
+    body: z.object({
+        email: z
+            .string({
+                message: 'El email es requerido',
+            })
+            .email({ message: 'El formato del email no es válido' })
+            .toLowerCase()
+            .trim(),
 
-    password: z
-        .string({
-            message: 'La contraseña es requerida',
-        })
-        .min(1, 'La contraseña no puede estar vacía'),
+        password: z
+            .string({
+                message: 'La contraseña es requerida',
+            })
+            .min(1, 'La contraseña no puede estar vacía'),
+    }),
 });
 
 /**
  * Tipo inferido del schema de login
  */
-export type LoginInput = z.infer<typeof loginSchema>;
+export type LoginInput = z.infer<typeof loginSchema>['body'];
 
 /**
  * Schema de validación para registro de usuario
  */
 export const registerSchema = z.object({
-    nombre: z
-        .string({
-            message: 'El nombre es requerido',
-        })
-        .min(2, 'El nombre debe tener al menos 2 caracteres')
-        .max(100, 'El nombre no puede exceder 100 caracteres')
-        .trim(),
+    body: z.object({
+        nombre: z
+            .string({
+                message: 'El nombre es requerido',
+            })
+            .min(2, 'El nombre debe tener al menos 2 caracteres')
+            .max(100, 'El nombre no puede exceder 100 caracteres')
+            .trim(),
 
-    email: z
-        .string({
-            message: 'El email es requerido',
-        })
-        .email({ message: 'El formato del email no es válido' })
-        .toLowerCase()
-        .trim(),
+        email: z
+            .string({
+                message: 'El email es requerido',
+            })
+            .email({ message: 'El formato del email no es válido' })
+            .toLowerCase()
+            .trim(),
 
-    password: z
-        .string({
-            message: 'La contraseña es requerida',
-        })
-        .min(8, 'La contraseña debe tener al menos 8 caracteres')
-        .regex(
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-            'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
-        ),
-
-    rol: z
-        .enum(['ADMIN', 'TRABAJADORA'], {
-            message: 'El rol debe ser ADMIN o TRABAJADORA',
-        })
-        .default('TRABAJADORA'),
+        password: z
+            .string({
+                message: 'La contraseña es requerida',
+            })
+            .min(8, 'La contraseña debe tener al menos 8 caracteres')
+            .regex(
+                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                'La contraseña debe contener al menos una mayúscula, una minúscula y un número'
+            ),
+    }),
 });
 
 /**
  * Tipo inferido del schema de registro
  */
-export type RegisterInput = z.infer<typeof registerSchema>;
+export type RegisterInput = z.infer<typeof registerSchema>['body'];
 
 /**
  * Schema de validación para cambio de contraseña (para futuro)
  */
 export const changePasswordSchema = z.object({
-    currentPassword: z
-        .string({
-            message: 'La contraseña actual es requerida',
-        })
-        .min(1, 'La contraseña actual no puede estar vacía'),
+    body: z.object({
+        currentPassword: z
+            .string({
+                message: 'La contraseña actual es requerida',
+            })
+            .min(1, 'La contraseña actual no puede estar vacía'),
 
-    newPassword: z
-        .string({
-            message: 'La nueva contraseña es requerida',
-        })
-        .min(8, 'La nueva contraseña debe tener al menos 8 caracteres')
-        .regex(
-            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-            'La nueva contraseña debe contener al menos una mayúscula, una minúscula y un número'
-        ),
+        newPassword: z
+            .string({
+                message: 'La nueva contraseña es requerida',
+            })
+            .min(8, 'La nueva contraseña debe tener al menos 8 caracteres')
+            .regex(
+                /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                'La nueva contraseña debe contener al menos una mayúscula, una minúscula y un número'
+            ),
 
-    confirmPassword: z
-        .string({
-            message: 'La confirmación de contraseña es requerida',
-        }),
-}).refine((data) => data.newPassword === data.confirmPassword, {
+        confirmPassword: z
+            .string({
+                message: 'La confirmación de contraseña es requerida',
+            }),
+    }),
+}).refine((data) => data.body.newPassword === data.body.confirmPassword, {
     message: 'Las contraseñas no coinciden',
-    path: ['confirmPassword'],
+    path: ['body', 'confirmPassword'],
 });
 
 /**
  * Tipo inferido del schema de cambio de contraseña
  */
-export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
-
-/**
- * Validar un objeto contra un schema de Zod
- * 
- * @param schema - Schema de Zod a usar
- * @param data - Datos a validar
- * @returns Datos validados y parseados
- * @throws Error con los mensajes de validación si falla
- */
-export function validate<T>(schema: z.ZodSchema<T>, data: unknown): T {
-    try {
-        return schema.parse(data);
-    } catch (error) {
-        if (error instanceof z.ZodError) {
-            // Formatear errores de Zod
-            const formattedErrors = error.issues.map((err) => ({
-                field: err.path.join('.'),
-                message: err.message,
-            }));
-
-            throw {
-                message: 'Error de validación',
-                errors: formattedErrors,
-            };
-        }
-
-        throw error;
-    }
-}
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>['body'];

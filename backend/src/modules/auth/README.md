@@ -35,7 +35,7 @@ auth/
        │
        ▼
 ┌─────────────────┐
-│   Middlewares   │ Validation (solo login)
+│   Middlewares   │ Validation (login y register)
 │                 │ Auth (solo /me y /logout)
 └────────┬────────┘
          │
@@ -74,8 +74,13 @@ auth/
 | Método | Ruta | Descripción | Acceso |
 |--------|------|-------------|--------|
 | `POST` | `/api/auth/login` | Iniciar sesión | Público |
+| `POST` | `/api/auth/register` | Registro público limitado (solo User con rol TRABAJADORA) | Público |
 | `GET` | `/api/auth/me` | Obtener usuario autenticado | Privado |
 | `POST` | `/api/auth/logout` | Cerrar sesión | Privado |
+
+> Nota: El flujo recomendado para alta completa de trabajadoras es `POST /api/trabajadoras`,
+> ya que crea `User + Trabajadora` en transacción. `POST /api/auth/register` no crea la
+> entidad `Trabajadora` asociada.
 
 ## 🔐 Sistema de autenticación
 
@@ -128,6 +133,7 @@ JWT_SECRET = 'tu_secret_key_aqui'
 ✅ Token no debe estar expirado  
 ✅ Usuario debe existir y estar activo  
 ✅ Se retorna información del usuario sin el password  
+✅ Si el usuario tiene relación `trabajadora`, la respuesta incluye `trabajadoraId`  
 
 ### Al hacer logout
 
@@ -628,7 +634,7 @@ Logging de eventos de autenticación:
 
 ## 🔗 Relaciones con otros módulos
 
-- **Trabajadoras**: Usa `authService.hashPassword()` para crear usuarios
+- **Trabajadoras**: Gestiona creación completa (`User + Trabajadora`) en su propio módulo
 - **Todos los módulos**: Usan middlewares `authenticate` y `authorizeRoles`
 - **Citas**: Usa `req.user.userId` para identificar trabajadora
 
@@ -641,5 +647,5 @@ Logging de eventos de autenticación:
 
 ---
 
-**Última actualización**: Febrero 2026  
-**Versión**: 1.0.0
+**Última actualización**: Abril 2026  
+**Versión**: 1.1.0
