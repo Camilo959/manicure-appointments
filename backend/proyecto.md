@@ -168,7 +168,7 @@ backend/
 │   │   ├── servicios/            # CRUD de servicios
 │   │   ├── usuarios/             # Gestión de personal (ADMIN/TRABAJADORA)
 │   │   ├── trabajadoras/         # CRUD de trabajadoras
-│   │   ├── clientes/             # (vacío, creación implícita)
+│   │   ├── clientes/             # (vacío, creación implícita) Añadir en schema
 │   │   └── notificaciones/       # Emails con Resend
 │   └── __tests__/
 │       ├── integration/          # Tests de integración
