@@ -12,7 +12,7 @@ import config from '../config/env';
  */
 export interface JwtPayload {
     userId: string;
-    rol: 'ADMIN' | 'TRABAJADORA';
+    rol: 'ADMIN' | 'TRABAJADORA' | 'CLIENTE';
 }
 
 /**

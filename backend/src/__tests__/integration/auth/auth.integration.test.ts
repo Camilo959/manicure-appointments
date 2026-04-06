@@ -104,4 +104,55 @@ describe('Auth Integration Tests', () => {
             })
         );
     });
+
+    it('should include clienteId in /auth/me for CLIENTE with relation', async () => {
+        const unique = Date.now();
+        const email = `cliente.${unique}@example.com`;
+        const password = 'Password123';
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const user = await prisma.user.create({
+            data: {
+                nombre: 'Cliente Auth',
+                email,
+                password: hashedPassword,
+                rol: 'CLIENTE',
+                activo: true,
+            },
+        });
+
+        const cliente = await prisma.cliente.create({
+            data: {
+                nombre: 'Cliente Auth',
+                telefono: `3${String(unique).slice(-9)}`,
+                email,
+                userId: user.id,
+            },
+        });
+
+        const loginResponse = await request(app)
+            .post('/api/auth/login')
+            .send({
+                email,
+                password,
+            })
+            .expect(200);
+
+        const token = loginResponse.body.data.token;
+
+        const meResponse = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', `Bearer ${token}`)
+            .expect(200);
+
+        expect(meResponse.body.data).toEqual(
+            expect.objectContaining({
+                id: user.id,
+                email,
+                rol: 'CLIENTE',
+                clienteId: cliente.id,
+                activo: true,
+            })
+        );
+    });
 });
