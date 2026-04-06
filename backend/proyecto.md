@@ -13,8 +13,9 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 ## Objetivos
 
 - Ofrecer un endpoint público para que los clientes agenden citas sin necesidad de registro.
+- Permitir cuentas opcionales de cliente para autogestión (perfil e historial) sin romper el flujo público.
 - Garantizar integridad de los datos: evitar solapamiento de citas, validar horarios laborales y días bloqueados.
-- Proveer un sistema de roles (ADMIN / TRABAJADORA) con permisos diferenciados.
+- Proveer un sistema de roles (ADMIN / TRABAJADORA / CLIENTE) con permisos diferenciados.
 - Enviar notificaciones por correo electrónico al crear, confirmar o cancelar citas.
 - Mantener una arquitectura limpia, modular y testeada con cobertura de pruebas unitarias e integración.
 
@@ -25,8 +26,9 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 ### Autenticación y Autorización
 - El módulo `auth` quedó enfocado en autenticación: login, validación de token y endpoint `/auth/me`.
 - La creación de personal se centralizó en el módulo `usuarios` (`POST /api/usuarios`, solo ADMIN).
+- La creación de cuentas de cliente se centralizó en el módulo `clientes` (`POST /api/clientes/register`, público).
 - Login con email/password → JWT con expiración configurable (por defecto 7 días).
-- Middleware de autenticación (`authenticate`) y autorización por roles (`requireAdmin`, `requireStaff`).
+- Middleware de autenticación (`authenticate`) y autorización por roles (`requireAdmin`, `requireStaff`, `requireCliente`).
 - Contraseñas hasheadas con bcrypt (salt rounds configurables).
 - Requisitos de contraseña: mínimo 8 caracteres, mayúscula, minúscula y dígito.
 
@@ -61,8 +63,14 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 - `POST /api/trabajadoras` se mantiene por compatibilidad operativa, pero el flujo canónico de alta de personal es `POST /api/usuarios`.
 
 ### Gestión de Clientes (Módulo `clientes`)
-- Creación implícita durante el agendamiento de citas (upsert por teléfono).
-- No expone endpoints CRUD dedicados actualmente.
+- Soporta cuenta opcional de cliente sin afectar el agendamiento público.
+- Registro de cuenta: `POST /api/clientes/register`.
+  - Crea `User` con rol `CLIENTE`.
+  - Si existe un `Cliente` con el teléfono y sin cuenta, lo vincula (`Cliente.userId`).
+  - Si ese `Cliente` ya tiene cuenta, responde conflicto.
+- Perfil autenticado: `GET /api/clientes/me` (rol `CLIENTE`).
+- Historial autenticado: `GET /api/clientes/me/citas` (rol `CLIENTE`).
+- Se mantiene la creación/actualización implícita de `Cliente` por teléfono durante `POST /api/citas`.
 
 ### Notificaciones por Email (Módulo `notificaciones`)
 - Integración con **Resend** como proveedor de email.
@@ -125,10 +133,10 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 ### Modelo de Datos
 
 ```
-User 1──1 Trabajadora 1──M Cita M──M Servicio
-                              │         (vía CitaServicio)
-                              │
-                         Cliente 1──M Cita
+        User 1──1 Trabajadora 1──M Cita M──M Servicio
+         │                           │         (vía CitaServicio)
+         │                           │
+         └──1 Cliente────────────────┘
 
 DiaBloqueado (independiente)
 ```
@@ -137,9 +145,9 @@ DiaBloqueado (independiente)
 
 | Modelo         | Campos clave                                                                 |
 |----------------|------------------------------------------------------------------------------|
-| `User`         | id, nombre, email, password, rol (ADMIN/TRABAJADORA), activo                 |
+| `User`         | id, nombre, email, password, rol (ADMIN/TRABAJADORA/CLIENTE), activo         |
 | `Trabajadora`  | id, nombre, activa, userId (FK → User)                                       |
-| `Cliente`      | id, nombre, telefono (unique), email                                         |
+| `Cliente`      | id, nombre, telefono (unique), email, userId? (FK unique → User)             |
 | `Servicio`     | id, nombre, duracionMinutos, precio, activo                                  |
 | `Cita`         | id, fechaInicio, fechaFin, estado, duracionTotal, precioTotal, numeroConfirmacion, tokenCancelacion, clienteId, trabajadoraId |
 | `CitaServicio` | id, citaId, servicioId, precioUnitario                                       |
@@ -168,7 +176,7 @@ backend/
 │   │   ├── servicios/            # CRUD de servicios
 │   │   ├── usuarios/             # Gestión de personal (ADMIN/TRABAJADORA)
 │   │   ├── trabajadoras/         # CRUD de trabajadoras
-│   │   ├── clientes/             # (vacío, creación implícita) Añadir en schema
+│   │   ├── clientes/             # Cuenta opcional de cliente (register/me/me-citas)
 │   │   └── notificaciones/       # Emails con Resend
 │   └── __tests__/
 │       ├── integration/          # Tests de integración
@@ -193,7 +201,13 @@ backend/
 | `GET`    | `/api/auth/me`                    | Autenticado  | Obtener usuario actual               |
 | `POST`   | `/api/auth/logout`                | Autenticado  | Cerrar sesión                        |
 | `POST`   | `/api/usuarios`                   | ADMIN        | Crear usuario de staff (ADMIN/TRABAJADORA) |
+| `POST`   | `/api/clientes/register`          | Público      | Crear cuenta de cliente (rol CLIENTE) |
+| `GET`    | `/api/clientes/me`                | CLIENTE      | Obtener perfil del cliente autenticado |
+| `GET`    | `/api/clientes/me/citas`          | CLIENTE      | Consultar historial de citas propio |
 | `POST`   | `/api/citas`                      | Público      | Agendar cita                         |
+| `PATCH`  | `/api/citas/:id/confirmar`        | Público      | Confirmar cita                       |
+| `PATCH`  | `/api/citas/:id/cancelar`         | Público      | Cancelar cita por id                 |
+| `PATCH`  | `/api/citas/cancelar/:token`      | Público      | Cancelar cita por token              |
 | `GET`    | `/api/disponibilidad`             | Autenticado  | Consultar disponibilidad             |
 | `POST`   | `/api/servicios`                  | ADMIN        | Crear servicio                       |
 | `GET`    | `/api/servicios`                  | Staff        | Listar servicios                     |
@@ -228,9 +242,6 @@ backend/
 
 ### Alta Prioridad
 - [ ] **Frontend**: la carpeta `frontend/` está vacía – implementar interfaz de usuario (formulario de agendamiento público, panel de administración).
-- [ ] **Módulo de Clientes**: crear endpoints CRUD dedicados para gestión de clientes (listado, búsqueda, edición, historial de citas).
-- [ ] **Cancelación de citas**: implementar endpoint público para cancelar citas usando el `tokenCancelacion` ya generado.
-- [ ] **Confirmación de citas**: implementar endpoint para cambiar estado de `PENDIENTE` a `CONFIRMADA`.
 - [ ] **Gestión completa de estados**: endpoints para marcar citas como `COMPLETADA`, `NO_ASISTIO`, `REPROGRAMADA`.
 
 ### Media Prioridad
@@ -239,6 +250,7 @@ backend/
 - [ ] **Reprogramación de citas**: endpoint para cambiar fecha/hora de una cita existente.
 - [ ] **Ampliar cobertura de tests**: agregar tests unitarios para módulos de servicios y trabajadoras, y más tests de integración.
 - [ ] **Convergencia de onboarding**: evaluar retiro progresivo de `POST /api/trabajadoras` como ruta de compatibilidad y centralizar alta de staff en `POST /api/usuarios`.
+- [ ] **Gestión administrativa de clientes**: evaluar CRUD interno de clientes para staff (búsqueda, edición y auditoría), separado del flujo self-service de cliente.
 
 ### Baja Prioridad
 - [ ] **Paginación**: agregar paginación a listados de citas, servicios, trabajadoras y clientes.
@@ -279,3 +291,13 @@ npm run test:db       # Probar conexión a base de datos
   - Se retiró `POST /api/auth/register`.
   - El módulo `auth` quedó enfocado en login, token, `/auth/me` y logout.
   - Se ajustaron pruebas de integración y documentación de módulos para reflejar el nuevo flujo canónico.
+
+- **PR3 - Cuenta opcional de cliente**:
+  - Se agregó el rol `CLIENTE` al sistema de autenticación/autorización.
+  - Se creó el módulo `clientes` con endpoints:
+    - `POST /api/clientes/register`
+    - `GET /api/clientes/me`
+    - `GET /api/clientes/me/citas`
+  - Se extendió `/api/auth/me` para incluir `clienteId` cuando aplica.
+  - Se actualizó el modelo para relación opcional `Cliente.userId` (1:1 con `User`).
+  - Se añadieron pruebas de integración para `clientes` y cobertura de `auth/me` en usuarios `CLIENTE`.
