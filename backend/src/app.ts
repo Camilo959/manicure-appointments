@@ -10,6 +10,7 @@ import disponibilidadRoutes from './modules/citas/disponibilidad.routes';
 import trabajadoraRoutes from './modules/trabajadoras/trabajadora.routes';
 import citaRoutes from './modules/citas/cita.routes';
 import usuarioRoutes from './modules/usuarios/usuario.routes';
+import clienteRoutes from './modules/clientes/cliente.routes';
 
 export const app = express();
 
@@ -27,6 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/servicios', servicioRoutes);
 app.use('/api/trabajadoras', trabajadoraRoutes);
 app.use('/api/usuarios', usuarioRoutes);
+app.use('/api/clientes', clienteRoutes);
 app.use('/api/disponibilidad', disponibilidadRoutes);
 app.use('/api/citas', citaRoutes);
 

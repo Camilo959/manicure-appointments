@@ -22,7 +22,7 @@ export interface LoginResponse {
         id: string;
         nombre: string;
         email: string;
-        rol: 'ADMIN' | 'TRABAJADORA';
+        rol: 'ADMIN' | 'TRABAJADORA' | 'CLIENTE';
     };
     token: string;
 }
@@ -106,6 +106,25 @@ export class AuthService {
                 activo: userWithTrabajadora.activo,
                 ...(userWithTrabajadora.trabajadora && {
                     trabajadoraId: userWithTrabajadora.trabajadora.id,
+                }),
+            };
+        }
+
+        if (user.rol === 'CLIENTE') {
+            const userWithCliente = await authRepository.findUserWithCliente(userId);
+
+            if (!userWithCliente) {
+                throw new UsuarioNoEncontradoError();
+            }
+
+            return {
+                id: userWithCliente.id,
+                nombre: userWithCliente.nombre,
+                email: userWithCliente.email,
+                rol: userWithCliente.rol,
+                activo: userWithCliente.activo,
+                ...(userWithCliente.cliente && {
+                    clienteId: userWithCliente.cliente.id,
                 }),
             };
         }

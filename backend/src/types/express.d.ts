@@ -13,7 +13,7 @@ import { JwtPayload } from '../utils/token.utils';
  */
 export interface AuthUser extends JwtPayload {
     userId: string;
-    rol: 'ADMIN' | 'TRABAJADORA';
+    rol: 'ADMIN' | 'TRABAJADORA' | 'CLIENTE';
 }
 
 /**

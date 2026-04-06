@@ -70,6 +70,23 @@ export class AuthRepository {
         });
     }
 
+    /**
+     * Buscar un usuario con su cliente asociado
+     *
+     * Útil para exponer el `clienteId` en respuestas de perfil autenticado
+     *
+     * @param userId - ID del usuario
+     * @returns Usuario con cliente o null
+     */
+    async findUserWithCliente(userId: string) {
+        return prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                cliente: true,
+            },
+        });
+    }
+
 }
 
 // Exportar instancia única del repositorio

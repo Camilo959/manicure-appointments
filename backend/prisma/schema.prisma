@@ -21,6 +21,7 @@ datasource db {
 enum Rol {
   ADMIN
   TRABAJADORA
+  CLIENTE
 }
 
 enum EstadoCita {
@@ -36,7 +37,7 @@ enum EstadoCita {
 // MODELOS
 // ====================================
 
-/// Usuario del sistema (Admin o Trabajadora con login)
+/// Usuario del sistema (Admin, Trabajadora o Cliente con login)
 model User {
   id        String   @id @default(uuid()) @db.Uuid
   nombre    String
@@ -49,6 +50,8 @@ model User {
 
   // Relación 1-1 con Trabajadora (solo si rol = TRABAJADORA)
   trabajadora Trabajadora?
+  // Relación 1-1 con Cliente (solo si rol = CLIENTE)
+  cliente     Cliente?
 
 }
 
@@ -69,14 +72,18 @@ model Trabajadora {
 
 }
 
-/// Cliente (sin login, solo datos de contacto)
+/// Cliente (con o sin login)
 model Cliente {
   id        String   @id @default(uuid()) @db.Uuid
   nombre    String
   telefono  String  @unique
   email     String?
+  userId    String? @unique @db.Uuid
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Relación opcional 1-1 con User para cuenta de cliente
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   // Relación con Citas
   citas Cita[]
