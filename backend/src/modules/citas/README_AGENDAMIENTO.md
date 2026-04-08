@@ -11,13 +11,16 @@ Endpoint público `POST /api/citas` que permite a clientes (sin autenticación) 
 ├── 🎮 cita.controller.ts       [HTTP Layer - Manejo req/res]
 ├── 🧠 cita.service.ts          [Business Logic - Validaciones + Transacciones]
 ├── 🗄️ cita.repository.ts       [Data Access - Prisma queries]
+├── 🚦 cita.rate-limit.service.ts [Rate Limit Engine - Reglas anti-spam]
 ├── 🛤️ cita.routes.ts           [Routing - Definición endpoints]
 ├── ✅ cita.validation.ts        [Zod schemas - Validación input]
 ├── ❌ cita.errors.ts            [Custom Errors - Errores tipados]
 ├── 📘 cita.types.ts             [TypeScript Types/DTOs]
 ├── 🔧 cita.utils.ts             [Utilities - Cálculos y helpers]
-│
-├── 📁 disponibilidad/
+├── 📞 ../utils/telefono.utils.ts [Normalización de teléfonos +57]
+└── 🧱 ../middlewares/cita-rate-limit.middleware.ts [Middleware para POST /api/citas]
+ 
+📁 disponibilidad/
 ├── disponibilidad.controller.ts
 ├── disponibilidad.service.ts
 ├── disponibilidad.routes.ts
@@ -127,6 +130,28 @@ model Cita {
 - `404 SERVICIOS_NO_ENCONTRADOS`
 - `409 HORARIO_NO_DISPONIBLE`
 - `409 SOLAPAMIENTO_CITA`
+- `409 MAXIMO_CITAS_ACTIVAS_POR_TELEFONO`
+- `429 RATE_LIMIT_IP_15M`
+- `429 RATE_LIMIT_IP_24H`
+- `429 RATE_LIMIT_PHONE_24H`
+- `429 RATE_LIMIT_SLOT_30M`
+- `429 IP_TEMPORALMENTE_BLOQUEADA`
+
+### Rate limiting activo (POST /api/citas)
+
+Políticas implementadas en backend (store en memoria, instancia única):
+
+1. **Por IP - ventana corta**: máximo 20 requests cada 15 minutos.
+2. **Por IP - ventana diaria**: máximo 50 requests cada 24 horas.
+3. **Por teléfono**: máximo 4 intentos de agendamiento cada 24 horas.
+4. **Por slot** (`trabajadoraId + fecha + horaInicio`): máximo 4 intentos cada 30 minutos.
+5. **Reincidencia por IP**: si una IP excede el límite corto 3 veces dentro de 1 hora, queda bloqueada 6 horas.
+6. **Regla de negocio adicional**: máximo 2 citas activas por teléfono (`PENDIENTE` y `CONFIRMADA`).
+
+Notas operativas:
+
+- Se normaliza el teléfono a `+57XXXXXXXXXX` antes de aplicar límites y persistir cliente.
+- Para despliegues detrás de proxy/load balancer, usar `TRUST_PROXY=true` para que `req.ip` sea confiable.
 
 ---
 
@@ -461,6 +486,26 @@ No se genera manualmente en `cita.service.ts`.
 
 ---
 
+### 8️⃣ 🚦 Protección anti-spam en endpoint público
+
+La protección se implementó con un motor propio en memoria (`cita.rate-limit.service.ts`) y middleware dedicado (`cita-rate-limit.middleware.ts`) encadenado en `POST /api/citas`.
+
+**Orden del pipeline en ruta pública:**
+
+1. `validate(agendarCitaPublicaSchema)`
+2. `aplicarRateLimitAgendarCita`
+3. `agendarCitaPublica`
+
+**Qué se valida antes de crear la cita:**
+
+- Límites por IP (15 min y 24 h)
+- Límites por teléfono (24 h)
+- Límites por slot (30 min)
+- Bloqueo temporal por IP reincidente (6 h)
+- Máximo 2 citas activas por teléfono
+
+---
+
 ## 🛡️ Prevención de overbooking en alta concurrencia
 
 ### Problema:
@@ -753,20 +798,18 @@ logger.error('Timeout de transacción', {
 
 ## 🔒 Seguridad
 
-### 1. Rate limiting (Recomendado)
-```typescript
-import rateLimit from 'express-rate-limit';
+### 1. Rate limiting (Implementado)
 
-const agendamientoLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
-  max: 5, // Máximo 5 intentos por IP
-  message: 'Demasiados intentos de agendamiento. Intente en 15 minutos.',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+Protección activa en `POST /api/citas` con middleware propio y reglas multi-capa:
 
-router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
-```
+- 20 intentos por IP cada 15 minutos
+- 50 intentos por IP cada 24 horas
+- 4 intentos por teléfono cada 24 horas
+- 4 reintentos por slot cada 30 minutos
+- bloqueo temporal de 6 horas por reincidencia (3 excesos en 1 hora)
+- máximo 2 citas activas por teléfono
+
+No requiere dependencia adicional tipo `express-rate-limit`.
 
 ### 2. Validación de entrada robusta
 - ✅ Zod schemas exhaustivos
@@ -802,10 +845,10 @@ router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
 - [x] Rutas registradas en app.ts
 - [x] Endpoints de confirmación y cancelación
 - [x] Validación de ventana de 24h para cancelación por token
-- [ ] Tests unitarios
+- [x] Tests unitarios (incluye cobertura de políticas de rate limiting)
 - [ ] Tests de integración (race conditions)
 - [ ] Tests E2E
-- [ ] Rate limiting configurado
+- [x] Rate limiting configurado
 - [ ] Logging estructurado
 - [ ] Métricas de monitoreo
 - [ ] Documentación de API
@@ -814,24 +857,13 @@ router.post('/', agendamientoLimiter, validate(...), agendarCitaPublica);
 
 ## 🚀 Pasos siguientes
 
-### 1. Ejecutar migración
+### 1. Ejecutar tests focalizados del módulo
 ```bash
-cd backend
-npx prisma migrate dev --name agregar_campos_cita
-npx prisma generate
+npm test -- --runInBand src/__tests__/unit/citas/cita.rate-limit.service.test.ts
+npm test -- --runInBand src/__tests__/integration/citas/citas.integration.test.ts
 ```
 
-### 2. Instalar dependencias faltantes
-```bash
-npm install date-fns
-```
-
-### 3. Ejecutar tests
-```bash
-npm test
-```
-
-### 4. Probar endpoint
+### 2. Probar endpoint
 ```bash
 # Crear una cita de prueba
 curl -X POST http://localhost:3000/api/citas \
@@ -846,9 +878,10 @@ curl -X POST http://localhost:3000/api/citas \
   }'
 ```
 
-### 5. Configurar monitoreo
+### 3. Configurar monitoreo
 - Agregar logs estructurados
 - Configurar alertas para errores P2034 (race conditions)
+- Configurar alertas para códigos de rate limiting (`RATE_LIMIT_*`, `IP_TEMPORALMENTE_BLOQUEADA`)
 - Monitorear latencia P95 del endpoint
 
 ---
@@ -867,5 +900,5 @@ Este módulo está diseñado para **producción real** con:
 ---
 
 **Autor**: Backend Team  
-**Fecha**: 2026-03-26  
-**Versión**: 1.1.0
+**Fecha**: 2026-04-07  
+**Versión**: 1.2.0

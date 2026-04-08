@@ -48,6 +48,8 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 - **Detección de conflictos**: transacción `SERIALIZABLE` con bloqueo `FOR UPDATE` para prevenir solapamiento de horarios.
 - **Estados de cita**: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`, `REPROGRAMADA`, `COMPLETADA`, `NO_ASISTIO`.
 - **Disponibilidad** (`GET /api/disponibilidad`): consulta de slots disponibles con intervalos de 15 minutos, considerando citas existentes y duración total de los servicios seleccionados.
+- **Protección anti-spam** (`POST /api/citas`): rate limiting en memoria por IP, teléfono y slot, con bloqueo temporal por reincidencia.
+- **Normalización de teléfono**: todos los móviles colombianos se normalizan a formato `+57XXXXXXXXXX` antes de persistencia y validaciones.
 
 ### Gestión de Servicios (Módulo `servicios`)
 - CRUD completo (solo ADMIN).
@@ -86,6 +88,7 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 - Clases de error tipadas con códigos HTTP específicos:
   - `TrabajadoraNoDisponibleError` (400), `ServicioNoDisponibleError` (400), `FechaEnPasadoError` (400)
   - `HorarioNoDisponibleError` (409), `SolapamientoCitaError` (409), `DiaBloqueadoError` (400)
+  - `RateLimitExceededError` (429), `IpTemporalmenteBloqueadaError` (429), `MaximoCitasActivasPorTelefonoError` (409)
   - `NotFoundError` (404), `ConflictError` (409), `UnauthorizedError` (401), `ForbiddenError` (403)
 - Middleware global `errorHandler` que captura todas las excepciones y devuelve respuestas consistentes.
 
@@ -165,6 +168,7 @@ backend/
 │   │   └── prisma.ts             # Cliente Prisma
 │   ├── middlewares/
 │   │   ├── auth.middleware.ts     # Autenticación JWT
+│   │   ├── cita-rate-limit.middleware.ts # Rate limiting para POST /api/citas
 │   │   ├── error.middleware.ts    # Manejo global de errores
 │   │   ├── role.middleware.ts     # Autorización por roles
 │   │   └── validate.middleware.ts # Validación Zod
@@ -235,6 +239,7 @@ backend/
 | `BCRYPT_SALT_ROUNDS` | Rondas de hashing                     | 10             |
 | `RESEND_API_KEY`     | API key de Resend (opcional)          | —              |
 | `RESEND_FROM_EMAIL`  | Dirección de email remitente          | —              |
+| `TRUST_PROXY`        | Habilita `app.set('trust proxy', true)` para `req.ip` detrás de proxy | false |
 
 ---
 
@@ -258,7 +263,6 @@ backend/
 - [ ] **Historial de citas por cliente**: endpoint para consultar citas pasadas de un cliente por teléfono o número de confirmación.
 - [ ] **Dashboard de estadísticas**: métricas para la administradora (citas por día/semana, ingresos, trabajadoras con más citas, etc.).
 - [ ] **Recordatorios automáticos**: programar envío de emails recordando la cita al cliente (ej. 24h antes).
-- [ ] **Rate limiting**: protección contra abuso en endpoints públicos.
 - [ ] **Logging estructurado**: integrar un logger (Winston/Pino) para registros de producción.
 - [ ] **CI/CD**: pipeline de integración continua (ejecutar tests, lint, build) y despliegue automático.
 - [ ] **Documentación de API**: generar documentación interactiva con Swagger/OpenAPI.
@@ -301,3 +305,10 @@ npm run test:db       # Probar conexión a base de datos
   - Se extendió `/api/auth/me` para incluir `clienteId` cuando aplica.
   - Se actualizó el modelo para relación opcional `Cliente.userId` (1:1 con `User`).
   - Se añadieron pruebas de integración para `clientes` y cobertura de `auth/me` en usuarios `CLIENTE`.
+
+- **PR4 - Rate limiting en agendamiento público**:
+  - Se implementó rate limiting específico para `POST /api/citas` sin dependencias externas.
+  - Políticas activas: `20/15m` por IP, `50/24h` por IP, `4/24h` por teléfono, `4/30m` por slot y bloqueo de `6h` tras 3 excesos en 1 hora.
+  - Se agregó límite de negocio: máximo 2 citas activas (`PENDIENTE` o `CONFIRMADA`) por teléfono.
+  - Se añadió normalización de teléfono a `+57XXXXXXXXXX` para consistencia entre validación, límites y persistencia.
+  - Se incorporaron pruebas unitarias para el motor de rate limiting.
