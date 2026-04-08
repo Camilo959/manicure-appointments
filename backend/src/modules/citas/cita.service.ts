@@ -28,6 +28,7 @@ import {
   type InputCitaConfirmada,
   type InputCitaCreada,
 } from '../notificaciones';
+import { normalizarTelefonoColombiano } from '../../utils/telefono.utils';
 
 export class CitaService {
   constructor(private repository: CitaRepository) {}
@@ -39,6 +40,12 @@ export class CitaService {
    * para garantizar consistencia y evitar race conditions
    */
   async agendarCitaPublica(data: AgendarCitaPublicaInput): Promise<CitaCreadaDTO> {
+    const telefonoNormalizado = normalizarTelefonoColombiano(data.telefono);
+    const dataNormalizada: AgendarCitaPublicaInput = {
+      ...data,
+      telefono: telefonoNormalizado,
+    };
+
     // Transacción con nivel de aislamiento SERIALIZABLE
     // Esto previene anomalías de lectura fantasma y write skew
     const citaCreada = await this.repository.ejecutarEnTransaccion(
@@ -47,7 +54,7 @@ export class CitaService {
         // PASO 1: Validar trabajadora
         // ═══════════════════════════════════════════════════════
         const trabajadora = await this.repository.buscarTrabajadoraActiva(
-          data.trabajadoraId,
+          dataNormalizada.trabajadoraId,
           tx
         );
 
@@ -59,14 +66,14 @@ export class CitaService {
         // PASO 2: Validar servicios
         // ═══════════════════════════════════════════════════════
         const servicios = await this.repository.buscarServiciosActivos(
-          data.serviciosIds,
+          dataNormalizada.serviciosIds,
           tx
         );
 
         // Verificar que todos los servicios existan
-        if (servicios.length !== data.serviciosIds.length) {
+        if (servicios.length !== dataNormalizada.serviciosIds.length) {
           const encontrados = servicios.map((s) => s.id);
-          const faltantes = data.serviciosIds.filter((id: string) => !encontrados.includes(id));
+          const faltantes = dataNormalizada.serviciosIds.filter((id: string) => !encontrados.includes(id));
           throw new ServiciosNoEncontradosError(faltantes);
         }
 
@@ -79,7 +86,7 @@ export class CitaService {
         // ═══════════════════════════════════════════════════════
         // PASO 3: Calcular fechas y duraciones
         // ═══════════════════════════════════════════════════════
-        const fechaInicio = combinarFechaHora(data.fecha, data.horaInicio);
+        const fechaInicio = combinarFechaHora(dataNormalizada.fecha, dataNormalizada.horaInicio);
         const duracionTotal = calcularDuracionTotal(servicios);
         const precioTotal = calcularPrecioTotal(servicios);
         const fechaFin = calcularFechaFin(fechaInicio, duracionTotal);
@@ -100,7 +107,7 @@ export class CitaService {
         );
 
         if (esDiaBloqueado) {
-          throw new DiaBloqueadoError(data.fecha);
+          throw new DiaBloqueadoError(dataNormalizada.fecha);
         }
 
         // 4.3: Validar horario laboral
@@ -118,7 +125,7 @@ export class CitaService {
         // Esto bloquea las filas con FOR UPDATE para prevenir
         // que otra transacción concurrente cree una cita solapada
         const citasSolapadas = await this.repository.buscarCitasSolapadas(
-          data.trabajadoraId,
+          dataNormalizada.trabajadoraId,
           fechaInicio,
           fechaFin,
           tx
@@ -135,8 +142,8 @@ export class CitaService {
         const cliente = await this.repository.buscarOCrearCliente(
           {
             nombre: data.nombreCliente,
-            telefono: data.telefono,
-            email: data.email,
+            telefono: dataNormalizada.telefono,
+            email: dataNormalizada.email,
           },
           tx
         );
@@ -152,13 +159,13 @@ export class CitaService {
         const citaCreada = await this.repository.crearCitaConServicios(
           {
             clienteId: cliente.id,
-            trabajadoraId: data.trabajadoraId,
+            trabajadoraId: dataNormalizada.trabajadoraId,
             fechaInicio,
             fechaFin,
             duracionTotal,
             precioTotal,
             numeroConfirmacion,
-            serviciosIds: data.serviciosIds,
+            serviciosIds: dataNormalizada.serviciosIds,
           },
           tx
         );

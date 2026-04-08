@@ -143,6 +143,24 @@ export class CitaRepository {
     });
   }
 
+  async contarCitasActivasPorTelefono(
+    telefono: string,
+    tx?: Prisma.TransactionClient
+  ): Promise<number> {
+    const client = tx || prisma;
+
+    return await client.cita.count({
+      where: {
+        estado: {
+          in: ['PENDIENTE', 'CONFIRMADA'],
+        },
+        cliente: {
+          telefono,
+        },
+      },
+    });
+  }
+
   async actualizarEstadoCita(
     citaId: string,
     estado: Prisma.CitaUpdateInput['estado'],

@@ -114,3 +114,29 @@ export class CitaEstadoInvalidoError extends CitaError {
     );
   }
 }
+
+export class RateLimitExceededError extends CitaError {
+  constructor(mensaje: string, codigo: string = 'RATE_LIMIT_EXCEEDED') {
+    super(mensaje, 429, codigo);
+  }
+}
+
+export class IpTemporalmenteBloqueadaError extends CitaError {
+  constructor() {
+    super(
+      'Tu IP fue bloqueada temporalmente por exceso de intentos. Intenta de nuevo en 6 horas.',
+      429,
+      'IP_TEMPORALMENTE_BLOQUEADA'
+    );
+  }
+}
+
+export class MaximoCitasActivasPorTelefonoError extends CitaError {
+  constructor() {
+    super(
+      'Este número de teléfono ya tiene el máximo de 2 citas activas (pendiente o confirmada).',
+      409,
+      'MAXIMO_CITAS_ACTIVAS_POR_TELEFONO'
+    );
+  }
+}
