@@ -43,7 +43,3 @@ Este diseño preserva la experiencia rápida de agendamiento y agrega autogesti�
 - El agendamiento público (`POST /api/citas`) se mantiene sin cambios.
 - La cuenta de cliente es **opcional**, no requisito para reservar.
 - El sistema conserva creación/actualización implícita de `Cliente` por teléfono durante el agendamiento.
-
-## 📮 Ejemplos de API
-
-- Ver ejemplos de request/response en `EJEMPLOS_API.md`.
