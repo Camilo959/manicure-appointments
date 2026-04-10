@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { validate } from '../../middlewares/validate.middleware';
-import { aplicarRateLimitAgendarCita } from '../../middlewares/cita-rate-limit.middleware';
 import {
   agendarCitaPublica,
   cancelarCita,
@@ -24,7 +23,6 @@ const router = Router();
 router.post(
   '/',
   validate(agendarCitaPublicaSchema),
-  aplicarRateLimitAgendarCita,
   agendarCitaPublica
 );
 

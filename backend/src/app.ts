@@ -15,10 +15,6 @@ import clienteRoutes from './modules/clientes/cliente.routes';
 export const app = express();
 
 // Middlewares globales
-if (process.env.TRUST_PROXY === 'true') {
-    app.set('trust proxy', true);
-}
-
 app.use(cors());
 app.use(express.json());
 
