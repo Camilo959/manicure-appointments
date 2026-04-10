@@ -3,6 +3,8 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
+  // Shared DB + global cleanup hooks require serial execution to avoid cross-suite races.
+  maxWorkers: 1,
   testMatch: ['**/__tests__/**/*.test.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   globalSetup: '<rootDir>/src/__tests__/setup/global-setup.ts',
