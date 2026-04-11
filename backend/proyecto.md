@@ -301,3 +301,81 @@ npm run test:db       # Probar conexión a base de datos
   - Se extendió `/api/auth/me` para incluir `clienteId` cuando aplica.
   - Se actualizó el modelo para relación opcional `Cliente.userId` (1:1 con `User`).
   - Se añadieron pruebas de integración para `clientes` y cobertura de `auth/me` en usuarios `CLIENTE`.
+
+## Plan para pruebas de APIs
+
+Optimizing tool selection...Perfecto. Aquí tienes una checklist corta, en orden recomendado, para validar el backend en 1 sesión (60-90 min) con Postman o Insomnia.
+
+**Preparación (5 min)**
+1. Levanta backend y confirma health: GET /health debe responder 200.
+2. Ten una base de datos limpia o conocida (ideal con seed).
+3. Define variables de colección: baseUrl, adminToken, clienteToken, trabajadoraId, servicioIds, citaId, tokenCancelacion.
+
+**Orden recomendado por módulo**
+
+**1) Auth (10 min)**
+1. POST /api/auth/login con credenciales válidas de admin: debe devolver token.
+2. GET /api/auth/me con token: debe devolver usuario autenticado.
+3. POST /api/auth/login con password incorrecto: debe devolver 401.
+4. GET /api/auth/me sin token: debe devolver 401.
+
+**2) Usuarios (staff) (8 min)**
+1. POST /api/usuarios como ADMIN creando TRABAJADORA: debe crear usuario y trabajadora.
+2. POST /api/usuarios como ADMIN creando ADMIN: debe crear solo usuario.
+3. POST /api/usuarios con email repetido: debe devolver 409.
+4. POST /api/usuarios con token no ADMIN: debe devolver 403.
+
+**3) Servicios (8 min)**
+1. POST /api/servicios como ADMIN: crear 2-3 servicios.
+2. GET /api/servicios como staff: listar activos.
+3. PUT /api/servicios/:id como ADMIN: editar precio/duración.
+4. PATCH /api/servicios/:id/estado como ADMIN: desactivar y validar que no aparezca como activo donde corresponda.
+5. Crear servicio con nombre duplicado: debe devolver 409.
+
+**4) Trabajadoras (8 min)**
+1. GET /api/trabajadoras como staff: listar.
+2. POST /api/trabajadoras como ADMIN (ruta compatibilidad): validar creación.
+3. PATCH /api/trabajadoras/:id/estado como ADMIN: activar/desactivar.
+4. Intentar desactivar última trabajadora activa: validar regla de negocio (error esperado).
+
+**5) Clientes (10 min)**
+1. POST /api/clientes/register público: crear cuenta cliente.
+2. Login de cliente y guardar clienteToken.
+3. GET /api/clientes/me con clienteToken: perfil correcto.
+4. GET /api/clientes/me/citas con clienteToken: historial (vacío al inicio o con datos).
+5. Repetir register con teléfono ya vinculado: validar conflicto 409.
+
+**6) Disponibilidad (8 min)**
+1. GET /api/disponibilidad con token y parámetros válidos (fecha, trabajadora, servicios): devolver slots.
+2. Probar fecha inválida, hora inválida o UUID inválido: devolver 400.
+3. Probar día bloqueado: no debe ofrecer disponibilidad.
+
+**7) Citas (crítico) (15-20 min)**
+1. POST /api/citas público con datos válidos: crear cita, guardar citaId y tokenCancelacion.
+2. POST /api/citas con hora fuera de jornada: 400.
+3. POST /api/citas en pasado: 400.
+4. POST /api/citas que solape otra cita: 409.
+5. PATCH /api/citas/:id/confirmar público: estado cambia correctamente.
+6. PATCH /api/citas/:id/cancelar público: estado CANCELADA.
+7. Crear otra cita y cancelar por token: PATCH /api/citas/cancelar/:token.
+8. Reintentar confirmar/cancelar una cita ya cancelada: validar comportamiento esperado y mensaje.
+
+**8) Permisos y seguridad transversal (5-8 min)**
+1. Endpoints ADMIN con token CLIENTE o sin token: 403/401 según corresponda.
+2. Validar que errores mantengan formato consistente (success, message, data o estructura definida).
+3. Probar payloads incompletos en módulos clave: debe responder 400 con detalles útiles.
+
+**Casos críticos que no debes saltar**
+1. Solapamiento de citas (doble reserva misma franja/trabajadora).
+2. Disponibilidad vs cita real (si un slot aparece libre, debe poder agendarse).
+3. Reglas de estado (confirmar/cancelar transiciones válidas).
+4. Autorización por rol (ADMIN vs STAFF vs CLIENTE).
+5. Registro cliente con teléfono ya existente.
+
+**Criterio de “listo para frontend”**
+1. Todos los flujos felices pasan de punta a punta.
+2. Todos los casos críticos arriba responden con código y mensaje correcto.
+3. No hay errores 500 inesperados en escenarios de validación/negocio.
+4. Quedan documentados los payloads finales que realmente usa tu frontend.
+
+Si quieres, te preparo en el siguiente mensaje una colección base de Postman (lista de requests en orden, con variables) para ejecutar esta checklist más rápido.
