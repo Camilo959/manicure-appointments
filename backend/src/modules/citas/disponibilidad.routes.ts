@@ -6,12 +6,12 @@ const router = Router();
 const disponibilidadController = new DisponibilidadController();
 
 /**
- * @route GET /api/citas/disponibilidad
+ * @route GET /api/disponibilidad
  * @desc Consultar horarios disponibles
  * @access Privado (cualquier usuario autenticado)
  */
 router.get(
-  '/disponibilidad',
+  '/',
   authenticate,
   disponibilidadController.consultarDisponibilidad
 );

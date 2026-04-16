@@ -1,6 +1,11 @@
 import prisma from '../../config/prisma';
 import type { Prisma } from '../../../generated/prisma/client';
-import type { ClienteData } from './cita.types';
+import {
+  CONFIGURACION_HORARIA_FALLBACK,
+  normalizarHoraHHmm,
+  type ClienteData,
+  type ConfiguracionHorariaAgenda,
+} from './cita.types';
 
 const citaConRelacionesInclude = {
   cliente: true,
@@ -246,13 +251,59 @@ export class CitaRepository {
   /**
    * Obtener configuración de horarios (para validaciones)
    */
-  async obtenerConfiguracionHorarios() {
-    // Asumo que tienes una tabla de configuración
-    // Si no, puedes mover estos valores a variables de entorno
-    return {
-      horaApertura: '09:00',
-      horaCierre: '19:00',
-      duracionMaximaCita: 180, // 3 horas
-    };
+  async obtenerConfiguracionHorarios(
+    tx?: Prisma.TransactionClient
+  ): Promise<ConfiguracionHorariaAgenda> {
+    const client = tx || prisma;
+    const nodeEnv = process.env.NODE_ENV;
+    const entornoPermiteFallback = !nodeEnv || ['development', 'test'].includes(nodeEnv);
+
+    try {
+      const rows = await client.$queryRaw<Array<{
+        horaApertura: unknown;
+        horaCierre: unknown;
+        duracionMaximaCitaMinutos: number;
+        intervaloSlotsMinutos: number;
+        maxDiasAnticipacion: number;
+        zonaHoraria: string;
+      }>>`
+        SELECT
+          "horaApertura",
+          "horaCierre",
+          "duracionMaximaCitaMinutos",
+          "intervaloSlotsMinutos",
+          "maxDiasAnticipacion",
+          "zonaHoraria"
+        FROM "ConfiguracionHoraria"
+        WHERE "activa" = true
+        ORDER BY "updatedAt" DESC
+        LIMIT 1
+      `;
+
+      if (rows.length === 0) {
+        if (entornoPermiteFallback) {
+          return CONFIGURACION_HORARIA_FALLBACK;
+        }
+
+        throw new Error('No existe una configuración horaria activa en base de datos');
+      }
+
+      const row = rows[0];
+
+      return {
+        horaApertura: normalizarHoraHHmm(row.horaApertura),
+        horaCierre: normalizarHoraHHmm(row.horaCierre),
+        duracionMaximaCitaMinutos: row.duracionMaximaCitaMinutos,
+        intervaloSlotsMinutos: row.intervaloSlotsMinutos,
+        maxDiasAnticipacion: row.maxDiasAnticipacion,
+        zonaHoraria: row.zonaHoraria,
+      };
+    } catch (error) {
+      if (entornoPermiteFallback) {
+        return CONFIGURACION_HORARIA_FALLBACK;
+      }
+
+      throw error;
+    }
   }
 }

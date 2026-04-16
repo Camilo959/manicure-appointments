@@ -11,7 +11,7 @@ export class DisponibilidadController {
   }
 
   /**
-   * GET /api/citas/disponibilidad?fecha=YYYY-MM-DD&trabajadoraId=uuid&serviciosIds[]=uuid&serviciosIds[]=uuid
+   * GET /api/disponibilidad?fecha=YYYY-MM-DD&trabajadoraId=uuid&serviciosIds[]=uuid&serviciosIds[]=uuid
    */
   consultarDisponibilidad = async (
     req: Request,

@@ -1,9 +1,11 @@
 import { CitaRepository, type CitaConRelaciones } from './cita.repository';
 import type { AgendarCitaPublicaInput, CitaCreadaDTO } from './cita.types';
+import type { ConfiguracionHorariaAgenda } from './cita.types';
 import {
   TrabajadoraNoDisponibleError,
   ServicioNoDisponibleError,
   FechaEnPasadoError,
+  FechaFueraDeRangoError,
   HorarioNoDisponibleError,
   DiaBloqueadoError,
   SolapamientoCitaError,
@@ -28,6 +30,7 @@ import {
   type InputCitaConfirmada,
   type InputCitaCreada,
 } from '../notificaciones';
+import { validarFechaMaxima } from './disponibilidad.validation';
 
 export class CitaService {
   constructor(private repository: CitaRepository) {}
@@ -83,6 +86,7 @@ export class CitaService {
         const duracionTotal = calcularDuracionTotal(servicios);
         const precioTotal = calcularPrecioTotal(servicios);
         const fechaFin = calcularFechaFin(fechaInicio, duracionTotal);
+        const config = await this.repository.obtenerConfiguracionHorarios(tx);
 
         // ═══════════════════════════════════════════════════════
         // PASO 4: Validaciones temporales
@@ -93,7 +97,12 @@ export class CitaService {
           throw new FechaEnPasadoError();
         }
 
-        // 4.2: Verificar día bloqueado
+        // 4.2: Fecha dentro de la ventana máxima de anticipación
+        if (!validarFechaMaxima(fechaInicio, config.maxDiasAnticipacion)) {
+          throw new FechaFueraDeRangoError(config.maxDiasAnticipacion);
+        }
+
+        // 4.3: Verificar día bloqueado
         const esDiaBloqueado = await this.repository.verificarDiaBloqueado(
           fechaInicio,
           tx
@@ -103,12 +112,11 @@ export class CitaService {
           throw new DiaBloqueadoError(data.fecha);
         }
 
-        // 4.3: Validar horario laboral
-        const config = await this.repository.obtenerConfiguracionHorarios();
+        // 4.4: Validar horario laboral
         this.validarHorarioLaboral(fechaInicio, fechaFin, config);
 
-        // 4.4: Validar duración máxima
-        if (duracionTotal > config.duracionMaximaCita) {
+        // 4.5: Validar duración máxima
+        if (duracionTotal > config.duracionMaximaCitaMinutos) {
           throw new DuracionInvalidaError();
         }
 
@@ -287,7 +295,7 @@ export class CitaService {
   private validarHorarioLaboral(
     fechaInicio: Date,
     fechaFin: Date,
-    config: { horaApertura: string; horaCierre: string }
+    config: ConfiguracionHorariaAgenda
   ): void {
     const horaInicio = fechaInicio.getHours() * 60 + fechaInicio.getMinutes();
     const horaFin = fechaFin.getHours() * 60 + fechaFin.getMinutes();

@@ -2,15 +2,6 @@ import { z } from 'zod';
 import { EstadoCita } from '../../generated/prisma/enums';
 
 /**
- * Constantes de configuración
- */
-export const HORARIO_CONFIG = {
-  INICIO_LABORAL: 8, // 8:00 AM
-  FIN_LABORAL: 18,   // 6:00 PM
-  SLOT_INTERVALO_MINUTOS: 15, // Granularidad de slots
-} as const;
-
-/**
  * Estados de cita que bloquean horarios
  */
 export const ESTADOS_OCUPADOS: EstadoCita[] = ['PENDIENTE', 'CONFIRMADA', 'REPROGRAMADA'];
