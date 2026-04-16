@@ -212,7 +212,7 @@ backend/
 | `GET`    | `/api/disponibilidad`             | Autenticado  | Consultar disponibilidad             |
 | `POST`   | `/api/servicios`                  | ADMIN        | Crear servicio                       |
 | `GET`    | `/api/servicios`                  | Staff        | Listar servicios                     |
-| `GET`    | `/api/servicios/:id`              | ADMIN        | Obtener servicio                     |
+| `GET`    | `/api/servicios/:id`              | Staff        | Obtener servicio                     |
 | `PUT`    | `/api/servicios/:id`              | ADMIN        | Actualizar servicio                  |
 | `PATCH`  | `/api/servicios/:id/estado`       | ADMIN        | Cambiar estado de servicio           |
 | `POST`   | `/api/trabajadoras`               | ADMIN        | Crear trabajadora (compatibilidad)   |
@@ -305,7 +305,7 @@ npm run test:db       # Probar conexión a base de datos
 
 ## Plan para pruebas de APIs
 
-Optimizing tool selection...Perfecto. Aquí tienes una checklist corta, en orden recomendado, para validar el backend en 1 sesión (60-90 min) con Postman o Insomnia.
+Checklist corta, en orden recomendado, para validar el backend en 1 sesión (60-90 min) con Postman o Insomnia.
 
 **Preparación (5 min)**
 1. Levanta backend y confirma health: GET /health debe responder 200.
