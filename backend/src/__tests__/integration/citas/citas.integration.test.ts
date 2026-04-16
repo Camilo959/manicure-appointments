@@ -18,6 +18,51 @@ describe('Contrato disponibilidad -> agendamiento', () => {
   test('si un slot aparece en disponibilidad se puede reservar y luego desaparece', async () => {
     const unique = Date.now();
 
+    await prisma.$executeRaw`
+      UPDATE "ConfiguracionHoraria"
+      SET "activa" = false,
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" <> '00000000-0000-0000-0000-000000000001'::uuid
+        AND "activa" = true
+    `;
+
+    await prisma.$executeRaw`
+      INSERT INTO "ConfiguracionHoraria" (
+        "id",
+        "horaApertura",
+        "horaCierre",
+        "duracionMaximaCitaMinutos",
+        "intervaloSlotsMinutos",
+        "maxDiasAnticipacion",
+        "zonaHoraria",
+        "activa",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES (
+        '00000000-0000-0000-0000-000000000001'::uuid,
+        '08:00:00'::time,
+        '19:00:00'::time,
+        180,
+        15,
+        90,
+        'America/Bogota',
+        true,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT ("id") DO UPDATE
+      SET
+        "horaApertura" = EXCLUDED."horaApertura",
+        "horaCierre" = EXCLUDED."horaCierre",
+        "duracionMaximaCitaMinutos" = EXCLUDED."duracionMaximaCitaMinutos",
+        "intervaloSlotsMinutos" = EXCLUDED."intervaloSlotsMinutos",
+        "maxDiasAnticipacion" = EXCLUDED."maxDiasAnticipacion",
+        "zonaHoraria" = EXCLUDED."zonaHoraria",
+        "activa" = true,
+        "updatedAt" = CURRENT_TIMESTAMP
+    `;
+
     const user = await prisma.user.create({
       data: {
         nombre: 'Trabajadora User',
