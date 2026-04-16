@@ -158,3 +158,19 @@ model DiaBloqueado {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+/// Configuración horaria global para agenda (una sola fila activa)
+model ConfiguracionHoraria {
+  id                         String   @id @default(uuid()) @db.Uuid
+  horaApertura               DateTime @db.Time
+  horaCierre                 DateTime @db.Time
+  duracionMaximaCitaMinutos  Int
+  intervaloSlotsMinutos      Int
+  maxDiasAnticipacion        Int
+  zonaHoraria                String   @default("America/Bogota")
+  activa                     Boolean  @default(true)
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([activa])
+}

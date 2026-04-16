@@ -254,7 +254,7 @@ Path params:
 
 ---
 
-## 📥 Endpoint: GET /api/citas/disponibilidad
+## 📥 Endpoint: GET /api/disponibilidad
 
 **Acceso**: Autenticado
 
@@ -289,9 +289,10 @@ serviciosIds[]=<uuid>
 ### Reglas de negocio aplicadas
 
 - Fecha no puede estar en el pasado.
-- Fecha máxima permitida: 3 meses en adelante.
+- Fecha máxima permitida según `ConfiguracionHoraria.maxDiasAnticipacion`.
 - Trabajadora debe existir y estar activa.
 - Día no bloqueado en tabla `DiaBloqueado`.
+- Duración total debe respetar `ConfiguracionHoraria.duracionMaximaCitaMinutos`.
 
 ### Errores posibles
 
@@ -343,11 +344,14 @@ if (esDiaBloqueado) {
 ```
 
 #### c) Validar horario laboral
-- Horario por defecto: 09:00 - 19:00
-- Configurable en `repository.obtenerConfiguracionHorarios()`
+- Fuente única: tabla `ConfiguracionHoraria` (fila activa)
+- Configuración inicial de seed: 08:00 - 19:00
 
 #### d) Validar duración máxima
-- Máximo: 180 minutos (3 horas)
+- Tomada de `ConfiguracionHoraria.duracionMaximaCitaMinutos`
+
+#### e) Validar rango máximo de anticipación
+- Tomado de `ConfiguracionHoraria.maxDiasAnticipacion`
 
 **Errores**:
 - `FechaEnPasadoError` (400)

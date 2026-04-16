@@ -44,10 +44,10 @@ Toda la interfaz del backend (mensajes de error, validaciones, formatos de fecha
 - **Agendamiento público** (`POST /api/citas`): cualquier persona puede agendar sin autenticarse.
   - Recibe: nombre del cliente, teléfono, email (opcional), trabajadora, fecha, hora de inicio y lista de servicios.
   - Devuelve: datos de la cita con número de confirmación (`YYYYMMDD-XXXX`) y token de cancelación.
-- **Validaciones temporales**: no se permiten citas en el pasado, en días bloqueados, ni fuera del horario laboral (8:00 – 18:00).
+- **Validaciones temporales**: no se permiten citas en el pasado, fuera del máximo de anticipación, en días bloqueados, ni fuera del horario laboral configurado en BD.
 - **Detección de conflictos**: transacción `SERIALIZABLE` con bloqueo `FOR UPDATE` para prevenir solapamiento de horarios.
 - **Estados de cita**: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`, `REPROGRAMADA`, `COMPLETADA`, `NO_ASISTIO`.
-- **Disponibilidad** (`GET /api/disponibilidad`): consulta de slots disponibles con intervalos de 15 minutos, considerando citas existentes y duración total de los servicios seleccionados.
+- **Disponibilidad** (`GET /api/disponibilidad`): consulta de slots disponibles usando la misma configuración horaria persistida que agendamiento (ventana, intervalo y máximo de anticipación).
 
 ### Gestión de Servicios (Módulo `servicios`)
 - CRUD completo (solo ADMIN).
@@ -152,6 +152,7 @@ DiaBloqueado (independiente)
 | `Cita`         | id, fechaInicio, fechaFin, estado, duracionTotal, precioTotal, numeroConfirmacion, tokenCancelacion, clienteId, trabajadoraId |
 | `CitaServicio` | id, citaId, servicioId, precioUnitario                                       |
 | `DiaBloqueado` | id, fecha (unique), motivo                                                   |
+| `ConfiguracionHoraria` | horaApertura, horaCierre, duracionMaximaCitaMinutos, intervaloSlotsMinutos, maxDiasAnticipacion, zonaHoraria, activa |
 
 ### Estructura de Carpetas
 

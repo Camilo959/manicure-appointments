@@ -40,9 +40,9 @@ export class FechaEnPasadoError extends CitaError {
 }
 
 export class FechaFueraDeRangoError extends CitaError {
-  constructor() {
+  constructor(maxDiasAnticipacion: number = 90) {
     super(
-      'Solo se pueden agendar citas hasta 3 meses en adelante',
+      `Solo se pueden agendar citas hasta ${maxDiasAnticipacion} días en adelante`,
       400,
       'FECHA_FUERA_DE_RANGO'
     );

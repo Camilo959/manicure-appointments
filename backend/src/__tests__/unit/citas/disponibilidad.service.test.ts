@@ -2,6 +2,7 @@ import { DisponibilidadService } from '../../../modules/citas/disponibilidad.ser
 
 describe('DisponibilidadService', () => {
     const prismaMock = {
+        $queryRaw: jest.fn(),
         trabajadora: { findUnique: jest.fn() },
         diaBloqueado: { findUnique: jest.fn() },
         servicio: { findMany: jest.fn() },
@@ -27,6 +28,16 @@ describe('DisponibilidadService', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        prismaMock.$queryRaw.mockResolvedValue([
+            {
+                horaApertura: '08:00:00',
+                horaCierre: '19:00:00',
+                duracionMaximaCitaMinutos: 180,
+                intervaloSlotsMinutos: 15,
+                maxDiasAnticipacion: 90,
+                zonaHoraria: 'America/Bogota',
+            },
+        ]);
         service = new DisponibilidadService(prismaMock);
     });
 

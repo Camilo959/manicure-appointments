@@ -23,6 +23,10 @@ const prisma = new PrismaClient({ adapter })
 async function main() {
   console.log('🌱 Iniciando seed de base de datos...\n');
 
+  const CONFIG_HORARIA_ID = '00000000-0000-0000-0000-000000000001';
+  const horaAperturaInicial = '08:00:00';
+  const horaCierreInicial = '19:00:00';
+
   try {
     // =====================================================
     // 1. CREAR USUARIOS (ADMIN Y TRABAJADORAS)
@@ -190,6 +194,61 @@ async function main() {
     console.log('');
 
     // =====================================================
+    // 6. ASEGURAR CONFIGURACIÓN HORARIA GLOBAL ACTIVA
+    // =====================================================
+
+    console.log('🕒 Configurando horario global...');
+
+    await prisma.$executeRaw`
+      UPDATE "ConfiguracionHoraria"
+      SET "activa" = false,
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" <> CAST(${CONFIG_HORARIA_ID} AS uuid)
+        AND "activa" = true
+    `;
+
+    await prisma.$executeRaw`
+      INSERT INTO "ConfiguracionHoraria" (
+        "id",
+        "horaApertura",
+        "horaCierre",
+        "duracionMaximaCitaMinutos",
+        "intervaloSlotsMinutos",
+        "maxDiasAnticipacion",
+        "zonaHoraria",
+        "activa",
+        "createdAt",
+        "updatedAt"
+      )
+      VALUES (
+        CAST(${CONFIG_HORARIA_ID} AS uuid),
+        CAST(${horaAperturaInicial} AS time),
+        CAST(${horaCierreInicial} AS time),
+        180,
+        15,
+        90,
+        'America/Bogota',
+        true,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT ("id") DO UPDATE
+      SET
+        "horaApertura" = EXCLUDED."horaApertura",
+        "horaCierre" = EXCLUDED."horaCierre",
+        "duracionMaximaCitaMinutos" = EXCLUDED."duracionMaximaCitaMinutos",
+        "intervaloSlotsMinutos" = EXCLUDED."intervaloSlotsMinutos",
+        "maxDiasAnticipacion" = EXCLUDED."maxDiasAnticipacion",
+        "zonaHoraria" = EXCLUDED."zonaHoraria",
+        "activa" = true,
+        "updatedAt" = CURRENT_TIMESTAMP
+    `;
+
+    console.log('  ✅ Configuración horaria activa: 08:00 - 19:00');
+
+    console.log('');
+
+    // =====================================================
     // RESUMEN
     // =====================================================
 
@@ -199,6 +258,10 @@ async function main() {
     console.log('  💼 Servicios:', await prisma.servicio.count());
     console.log('  👥 Clientes:', await prisma.cliente.count());
     console.log('  🚫 Días bloqueados:', await prisma.diaBloqueado.count());
+    const configuracionesHorarias = await prisma.$queryRaw<Array<{ total: bigint }>>`
+      SELECT COUNT(*)::bigint AS total FROM "ConfiguracionHoraria"
+    `;
+    console.log('  🕒 Configuraciones horarias:', Number(configuracionesHorarias[0]?.total ?? 0));
 
     console.log('\n🎉 Seed completado exitosamente!\n');
 

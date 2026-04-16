@@ -4,16 +4,21 @@ import {
   ConsultarDisponibilidadInput,
   DisponibilidadResponse,
   SlotDisponible,
-  HORARIO_CONFIG,
   ESTADOS_OCUPADOS,
 } from '../../types/disponibilidad.types';
 import {
+  DuracionInvalidaError,
   FechaEnPasadoError,
   FechaFueraDeRangoError,
   ServicioNoDisponibleError,
   ServiciosNoEncontradosError,
   TrabajadoraNoDisponibleError,
 } from './cita.errors';
+import {
+  CONFIGURACION_HORARIA_FALLBACK,
+  normalizarHoraHHmm,
+  type ConfiguracionHorariaAgenda,
+} from './cita.types';
 import { validarFechaMaxima } from './disponibilidad.validation';
 
 export class DisponibilidadService {
@@ -26,6 +31,7 @@ export class DisponibilidadService {
     input: ConsultarDisponibilidadInput
   ): Promise<DisponibilidadResponse> {
     const { fecha, trabajadoraId, serviciosIds } = input;
+    const configHoraria = await this.obtenerConfiguracionHorariaActiva();
 
     // 1. Validar fecha no esté en el pasado
     const fechaConsulta = new Date(fecha);
@@ -35,8 +41,8 @@ export class DisponibilidadService {
       throw new FechaEnPasadoError();
     }
 
-    if (!validarFechaMaxima(fechaConsulta)) {
-      throw new FechaFueraDeRangoError();
+    if (!validarFechaMaxima(fechaConsulta, configHoraria.maxDiasAnticipacion)) {
+      throw new FechaFueraDeRangoError(configHoraria.maxDiasAnticipacion);
     }
 
     // 2. Validar trabajadora existe y está activa
@@ -106,8 +112,16 @@ export class DisponibilidadService {
       0
     );
 
+    if (duracionTotalMinutos > configHoraria.duracionMaximaCitaMinutos) {
+      throw new DuracionInvalidaError();
+    }
+
     // 5. Definir ventana de búsqueda
-    const { inicioVentana, finVentana } = this.calcularVentanaBusqueda(fechaConsulta, duracionTotalMinutos);
+    const { inicioVentana, finVentana } = this.calcularVentanaBusqueda(
+      fechaConsulta,
+      duracionTotalMinutos,
+      configHoraria
+    );
 
     // 6. Obtener citas ocupadas del día
     const citasOcupadas = await this.obtenerCitasOcupadas(trabajadoraId, fechaConsulta);
@@ -117,7 +131,8 @@ export class DisponibilidadService {
       inicioVentana,
       finVentana,
       duracionTotalMinutos,
-      citasOcupadas
+      citasOcupadas,
+      configHoraria.intervaloSlotsMinutos
     );
 
     return {
@@ -131,21 +146,34 @@ export class DisponibilidadService {
   /**
    * Calcula la ventana de búsqueda ajustada
    */
-  private calcularVentanaBusqueda(fecha: Date, duracionMinutos: number): {
+  private calcularVentanaBusqueda(
+    fecha: Date,
+    duracionMinutos: number,
+    configHoraria: ConfiguracionHorariaAgenda
+  ): {
     inicioVentana: Date;
     finVentana: Date;
   } {
     const esHoy = startOfDay(fecha).getTime() === startOfDay(new Date()).getTime();
     const ahora = new Date();
+    const aperturaEnMinutos = this.convertirHoraAMinutos(configHoraria.horaApertura);
+    const cierreEnMinutos = this.convertirHoraAMinutos(configHoraria.horaCierre);
 
     // Inicio del día laboral
     let inicioVentana = new Date(fecha);
-    inicioVentana.setHours(HORARIO_CONFIG.INICIO_LABORAL, 0, 0, 0);
+    inicioVentana.setHours(
+      Math.floor(aperturaEnMinutos / 60),
+      aperturaEnMinutos % 60,
+      0,
+      0
+    );
 
     // Si es hoy y ya pasó el inicio laboral, usar hora actual redondeada
     if (esHoy && isAfter(ahora, inicioVentana)) {
       const minutosActuales = ahora.getMinutes();
-      const minutosRedondeados = Math.ceil(minutosActuales / HORARIO_CONFIG.SLOT_INTERVALO_MINUTOS) * HORARIO_CONFIG.SLOT_INTERVALO_MINUTOS;
+      const minutosRedondeados = Math.ceil(
+        minutosActuales / configHoraria.intervaloSlotsMinutos
+      ) * configHoraria.intervaloSlotsMinutos;
       
       inicioVentana = new Date(ahora);
       inicioVentana.setMinutes(minutosRedondeados, 0, 0);
@@ -153,7 +181,12 @@ export class DisponibilidadService {
 
     // Fin del día laboral, ajustado para que quepa la cita completa
     let finVentana = new Date(fecha);
-    finVentana.setHours(HORARIO_CONFIG.FIN_LABORAL, 0, 0, 0);
+    finVentana.setHours(
+      Math.floor(cierreEnMinutos / 60),
+      cierreEnMinutos % 60,
+      0,
+      0
+    );
     finVentana = addMinutes(finVentana, -duracionMinutos);
 
     return { inicioVentana, finVentana };
@@ -197,7 +230,8 @@ export class DisponibilidadService {
     inicio: Date,
     fin: Date,
     duracionMinutos: number,
-    citasOcupadas: Array<{ fechaInicio: Date; fechaFin: Date }>
+    citasOcupadas: Array<{ fechaInicio: Date; fechaFin: Date }>,
+    intervaloSlotsMinutos: number
   ): SlotDisponible[] {
     const slots: SlotDisponible[] = [];
     let currentSlot = new Date(inicio);
@@ -223,9 +257,67 @@ export class DisponibilidadService {
       }
 
       // Avanzar al siguiente slot
-      currentSlot = addMinutes(currentSlot, HORARIO_CONFIG.SLOT_INTERVALO_MINUTOS);
+      currentSlot = addMinutes(currentSlot, intervaloSlotsMinutos);
     }
 
     return slots;
+  }
+
+  private convertirHoraAMinutos(hora: string): number {
+    const [horas, minutos] = hora.split(':').map(Number);
+    return horas * 60 + minutos;
+  }
+
+  private async obtenerConfiguracionHorariaActiva(): Promise<ConfiguracionHorariaAgenda> {
+    const nodeEnv = process.env.NODE_ENV;
+    const entornoPermiteFallback = !nodeEnv || ['development', 'test'].includes(nodeEnv);
+
+    try {
+      const rows = await this.prisma.$queryRaw<Array<{
+        horaApertura: unknown;
+        horaCierre: unknown;
+        duracionMaximaCitaMinutos: number;
+        intervaloSlotsMinutos: number;
+        maxDiasAnticipacion: number;
+        zonaHoraria: string;
+      }>>`
+        SELECT
+          "horaApertura",
+          "horaCierre",
+          "duracionMaximaCitaMinutos",
+          "intervaloSlotsMinutos",
+          "maxDiasAnticipacion",
+          "zonaHoraria"
+        FROM "ConfiguracionHoraria"
+        WHERE "activa" = true
+        ORDER BY "updatedAt" DESC
+        LIMIT 1
+      `;
+
+      if (rows.length === 0) {
+        if (entornoPermiteFallback) {
+          return CONFIGURACION_HORARIA_FALLBACK;
+        }
+
+        throw new Error('No existe una configuración horaria activa en base de datos');
+      }
+
+      const row = rows[0];
+
+      return {
+        horaApertura: normalizarHoraHHmm(row.horaApertura),
+        horaCierre: normalizarHoraHHmm(row.horaCierre),
+        duracionMaximaCitaMinutos: row.duracionMaximaCitaMinutos,
+        intervaloSlotsMinutos: row.intervaloSlotsMinutos,
+        maxDiasAnticipacion: row.maxDiasAnticipacion,
+        zonaHoraria: row.zonaHoraria,
+      };
+    } catch (error) {
+      if (entornoPermiteFallback) {
+        return CONFIGURACION_HORARIA_FALLBACK;
+      }
+
+      throw error;
+    }
   }
 }
