@@ -1,0 +1,60 @@
+@baseUrl = http://localhost:3000
+
+# Requiere adminToken (obtenlo en 02_auth.http)
+
+### Crear usuario staff con rol TRABAJADORA
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Trabajadora API",
+  "email": "trabajadora.api@example.com",
+  "password": "Trabajadora123",
+  "rol": "TRABAJADORA"
+}
+
+> {%
+const data = response.body?.data;
+if (response.status >= 200 && response.status < 300 && data?.trabajadora?.id) {
+  client.global.set("trabajadoraId", data.trabajadora.id);
+}
+%}
+
+### Crear usuario staff con rol ADMIN
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Admin API",
+  "email": "admin.api@example.com",
+  "password": "AdminApi123",
+  "rol": "ADMIN"
+}
+
+### Conflicto esperado: email repetido (409)
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Admin API Duplicado",
+  "email": "admin.api@example.com",
+  "password": "AdminApi123",
+  "rol": "ADMIN"
+}
+
+### Prohibido esperado: intentar crear staff con token CLIENTE (403)
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{clienteToken}}
+Content-Type: application/json
+
+{
+  "nombre": "No Permitido",
+  "email": "nopermitido@example.com",
+  "password": "NoPermitido123",
+  "rol": "ADMIN"
+}
+
+###

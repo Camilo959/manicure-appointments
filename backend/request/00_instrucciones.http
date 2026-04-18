@@ -1,0 +1,35 @@
+# Instrucciones de uso - REST Client
+# -----------------------------------------------------------------------------
+# Esta carpeta usa archivos .http porque la extension REST Client ejecuta
+# requests HTTP directamente desde este formato.
+#
+# Flujo recomendado (en orden):
+# 1) 01_health.http
+# 2) 02_auth.http (setea adminToken y clienteToken)
+# 3) 03_usuarios.http
+# 4) 04_clientes.http
+# 5) 05_servicios.http
+# 6) 06_trabajadoras.http
+# 7) 07_disponibilidad.http
+# 8) 08_citas.http
+# 9) 09_permisos.http
+#
+# Notas:
+# - Ejecuta "Send Request" encima de cada bloque ###.
+# - Ajusta @baseUrl y credenciales segun tu entorno.
+# - Cuando un endpoint crea recursos, se guardan IDs automaticamente en
+#   variables globales (client.global.set) para usar en siguientes requests.
+# - Si quieres reiniciar variables globales, cierra VS Code o sobreescribelas
+#   ejecutando nuevamente los bloques de login/creacion.
+#
+# Variables globales usadas entre archivos:
+# - adminToken, clienteToken
+# - trabajadoraId, servicioId, servicioId2
+# - citaId, tokenCancelacion
+
+@baseUrl = http://localhost:3000
+
+### Health check rapido
+GET {{baseUrl}}/health
+
+###

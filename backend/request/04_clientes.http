@@ -1,0 +1,54 @@
+@baseUrl = http://localhost:3000
+
+# Datos para registro de cliente (publico)
+@clienteNombre = Cliente Demo REST
+@clienteTelefono = +573001234567
+@clienteEmail = cliente.demo@example.com
+@clientePassword = Cliente1234
+
+### Registro de cuenta cliente (publico)
+POST {{baseUrl}}/api/clientes/register
+Content-Type: application/json
+
+{
+  "nombre": "{{clienteNombre}}",
+  "telefono": "{{clienteTelefono}}",
+  "email": "{{clienteEmail}}",
+  "password": "{{clientePassword}}"
+}
+
+### Login cliente para obtener clienteToken
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{clienteEmail}}",
+  "password": "{{clientePassword}}"
+}
+
+> {%
+if (response.status === 200 && response.body?.data?.token) {
+  client.global.set("clienteToken", response.body.data.token);
+}
+%}
+
+### GET /api/clientes/me (requiere rol CLIENTE)
+GET {{baseUrl}}/api/clientes/me
+Authorization: Bearer {{clienteToken}}
+
+### GET /api/clientes/me/citas
+GET {{baseUrl}}/api/clientes/me/citas
+Authorization: Bearer {{clienteToken}}
+
+### Conflicto esperado: registrar con mismo telefono/email (409)
+POST {{baseUrl}}/api/clientes/register
+Content-Type: application/json
+
+{
+  "nombre": "Cliente Duplicado",
+  "telefono": "{{clienteTelefono}}",
+  "email": "{{clienteEmail}}",
+  "password": "{{clientePassword}}"
+}
+
+###

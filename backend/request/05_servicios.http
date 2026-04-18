@@ -1,0 +1,80 @@
+@baseUrl = http://localhost:3000
+
+# Requiere adminToken para crear/editar
+
+### Crear servicio 1 (ADMIN)
+POST {{baseUrl}}/api/servicios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Manicure Clasico API",
+  "duracionMinutos": 60,
+  "precio": 45000
+}
+
+> {%
+const servicio = response.body?.data;
+if (response.status >= 200 && response.status < 300 && servicio?.id) {
+  client.global.set("servicioId", servicio.id);
+}
+%}
+
+### Crear servicio 2 (ADMIN)
+POST {{baseUrl}}/api/servicios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Pedicure Spa API",
+  "duracionMinutos": 90,
+  "precio": 70000
+}
+
+> {%
+const servicio = response.body?.data;
+if (response.status >= 200 && response.status < 300 && servicio?.id) {
+  client.global.set("servicioId2", servicio.id);
+}
+%}
+
+### Listar servicios (ADMIN o TRABAJADORA)
+GET {{baseUrl}}/api/servicios
+Authorization: Bearer {{adminToken}}
+
+### Obtener servicio por ID
+GET {{baseUrl}}/api/servicios/{{servicioId}}
+Authorization: Bearer {{adminToken}}
+
+### Actualizar servicio
+PUT {{baseUrl}}/api/servicios/{{servicioId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Manicure Clasico API Premium",
+  "duracionMinutos": 75,
+  "precio": 55000
+}
+
+### Desactivar servicio
+PATCH {{baseUrl}}/api/servicios/{{servicioId2}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "activo": false
+}
+
+### Conflicto esperado por nombre duplicado (409)
+POST {{baseUrl}}/api/servicios
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Manicure Clasico API Premium",
+  "duracionMinutos": 60,
+  "precio": 40000
+}
+
+###

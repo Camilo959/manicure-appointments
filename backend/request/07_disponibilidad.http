@@ -1,0 +1,21 @@
+@baseUrl = http://localhost:3000
+
+# Requiere usuario autenticado (adminToken o clienteToken)
+# Requiere que existan trabajadoraId y al menos un servicioId.
+# Puedes generarlos en 03_usuarios.http, 05_servicios.http o 06_trabajadoras.http.
+
+@fecha = 2026-04-25
+
+### Consultar disponibilidad (query con arreglo serviciosIds)
+GET {{baseUrl}}/api/disponibilidad?fecha={{fecha}}&trabajadoraId={{trabajadoraId}}&serviciosIds={{servicioId}}&serviciosIds={{servicioId2}}
+Authorization: Bearer {{adminToken}}
+
+### Error esperado (400): fecha invalida
+GET {{baseUrl}}/api/disponibilidad?fecha=25-04-2026&trabajadoraId={{trabajadoraId}}&serviciosIds={{servicioId}}
+Authorization: Bearer {{adminToken}}
+
+### Error esperado (400): trabajadoraId invalido
+GET {{baseUrl}}/api/disponibilidad?fecha={{fecha}}&trabajadoraId=no-es-uuid&serviciosIds={{servicioId}}
+Authorization: Bearer {{adminToken}}
+
+###

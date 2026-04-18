@@ -1,0 +1,61 @@
+@baseUrl = http://localhost:3000
+
+# Ajusta estas credenciales segun tu seed o tu entorno local.
+@adminEmail = admin@example.com
+@adminPassword = Admin1234
+@clienteEmail = cliente.demo@example.com
+@clientePassword = Cliente1234
+
+### Login ADMIN (guarda adminToken global)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+> {%
+if (response.status === 200 && response.body?.data?.token) {
+  client.global.set("adminToken", response.body.data.token);
+}
+%}
+
+### GET /api/auth/me con ADMIN
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{adminToken}}
+
+### Logout ADMIN
+POST {{baseUrl}}/api/auth/logout
+Authorization: Bearer {{adminToken}}
+
+### Login CLIENTE (guarda clienteToken global)
+# Requiere que el cliente exista (puedes crearlo en 04_clientes.http).
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{clienteEmail}}",
+  "password": "{{clientePassword}}"
+}
+
+> {%
+if (response.status === 200 && response.body?.data?.token) {
+  client.global.set("clienteToken", response.body.data.token);
+}
+%}
+
+### GET /api/auth/me con CLIENTE
+GET {{baseUrl}}/api/auth/me
+Authorization: Bearer {{clienteToken}}
+
+### Caso invalido: login con password incorrecto (esperado 401)
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "Incorrecta123"
+}
+
+###

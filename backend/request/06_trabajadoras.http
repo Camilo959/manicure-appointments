@@ -1,0 +1,54 @@
+@baseUrl = http://localhost:3000
+
+# Requiere adminToken para CRUD de trabajadoras.
+# Nota: tambien puedes crear trabajadoras via /api/usuarios (flujo canónico).
+
+### Crear trabajadora (ruta de compatibilidad)
+POST {{baseUrl}}/api/trabajadoras
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Trabajadora Compat API",
+  "email": "trabajadora.compat.api@example.com",
+  "password": "Trabajadora123"
+}
+
+> {%
+const data = response.body?.data;
+if (response.status >= 200 && response.status < 300 && data?.id) {
+  client.global.set("trabajadoraId", data.id);
+}
+%}
+
+### Listar trabajadoras (ADMIN/TRABAJADORA)
+GET {{baseUrl}}/api/trabajadoras
+Authorization: Bearer {{adminToken}}
+
+### Obtener trabajadora por ID
+GET {{baseUrl}}/api/trabajadoras/{{trabajadoraId}}
+Authorization: Bearer {{adminToken}}
+
+### Actualizar trabajadora
+PUT {{baseUrl}}/api/trabajadoras/{{trabajadoraId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Trabajadora Compat API Actualizada"
+}
+
+### Cambiar estado de trabajadora
+PATCH {{baseUrl}}/api/trabajadoras/{{trabajadoraId}}/estado
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "activa": true
+}
+
+### Soft delete de trabajadora
+DELETE {{baseUrl}}/api/trabajadoras/{{trabajadoraId}}
+Authorization: Bearer {{adminToken}}
+
+###

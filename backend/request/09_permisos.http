@@ -1,0 +1,47 @@
+@baseUrl = http://localhost:3000
+
+# Archivo para pruebas transversales de permisos y seguridad.
+
+### Sin token -> GET /api/auth/me (esperado 401)
+GET {{baseUrl}}/api/auth/me
+
+### Token CLIENTE en endpoint ADMIN -> crear servicio (esperado 403)
+POST {{baseUrl}}/api/servicios
+Authorization: Bearer {{clienteToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Servicio No Permitido",
+  "duracionMinutos": 45,
+  "precio": 30000
+}
+
+### Token CLIENTE en endpoint ADMIN -> crear usuario (esperado 403)
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{clienteToken}}
+Content-Type: application/json
+
+{
+  "nombre": "Usuario No Permitido",
+  "email": "sinpermiso@example.com",
+  "password": "SinPermiso123",
+  "rol": "ADMIN"
+}
+
+### Sin token en disponibilidad (esperado 401)
+GET {{baseUrl}}/api/disponibilidad?fecha=2026-04-25&trabajadoraId={{trabajadoraId}}&serviciosIds={{servicioId}}
+
+### Payload invalido en crear cita (esperado 400)
+POST {{baseUrl}}/api/citas
+Content-Type: application/json
+
+{
+  "nombreCliente": "A",
+  "telefono": "123",
+  "trabajadoraId": "no-es-uuid",
+  "fecha": "25-04-2026",
+  "horaInicio": "99:99",
+  "serviciosIds": []
+}
+
+###

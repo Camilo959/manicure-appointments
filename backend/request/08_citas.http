@@ -1,0 +1,105 @@
+@baseUrl = http://localhost:3000
+
+# Requiere trabajadoraId y servicioId/servicioId2 creados antes.
+# Ajusta fecha/hora segun disponibilidad real.
+@fechaCita = 2026-04-25
+@horaCita = 10:00
+@horaCitaSolape = 10:30
+
+### Agendar cita publica
+POST {{baseUrl}}/api/citas
+Content-Type: application/json
+
+{
+  "nombreCliente": "Cliente Cita API",
+  "telefono": "+573102223344",
+  "email": "cliente.cita.api@example.com",
+  "trabajadoraId": "{{trabajadoraId}}",
+  "fecha": "{{fechaCita}}",
+  "horaInicio": "{{horaCita}}",
+  "serviciosIds": [
+    "{{servicioId}}",
+    "{{servicioId2}}"
+  ]
+}
+
+> {%
+const cita = response.body?.data;
+if (response.status === 201 && cita?.id) {
+  client.global.set("citaId", cita.id);
+}
+if (response.status === 201 && cita?.tokenCancelacion) {
+  client.global.set("tokenCancelacion", cita.tokenCancelacion);
+}
+%}
+
+### Confirmar cita por ID
+PATCH {{baseUrl}}/api/citas/{{citaId}}/confirmar
+
+### Cancelar cita por ID (con motivo opcional)
+PATCH {{baseUrl}}/api/citas/{{citaId}}/cancelar
+Content-Type: application/json
+
+{
+  "motivo": "Cliente solicito cancelacion por cambio de agenda"
+}
+
+### Crear una segunda cita para cancelar por token
+POST {{baseUrl}}/api/citas
+Content-Type: application/json
+
+{
+  "nombreCliente": "Cliente Token API",
+  "telefono": "+573105556677",
+  "email": "cliente.token.api@example.com",
+  "trabajadoraId": "{{trabajadoraId}}",
+  "fecha": "{{fechaCita}}",
+  "horaInicio": "12:00",
+  "serviciosIds": [
+    "{{servicioId}}"
+  ]
+}
+
+> {%
+const cita = response.body?.data;
+if (response.status === 201 && cita?.tokenCancelacion) {
+  client.global.set("tokenCancelacion", cita.tokenCancelacion);
+}
+%}
+
+### Cancelar cita por token
+PATCH {{baseUrl}}/api/citas/cancelar/{{tokenCancelacion}}
+
+### Error esperado (409): intentar agendar cita solapada
+POST {{baseUrl}}/api/citas
+Content-Type: application/json
+
+{
+  "nombreCliente": "Cliente Solape API",
+  "telefono": "+573100001122",
+  "email": "cliente.solape.api@example.com",
+  "trabajadoraId": "{{trabajadoraId}}",
+  "fecha": "{{fechaCita}}",
+  "horaInicio": "{{horaCitaSolape}}",
+  "serviciosIds": [
+    "{{servicioId}}"
+  ]
+}
+
+### Error esperado (400): cita en fecha pasada
+POST {{baseUrl}}/api/citas
+Content-Type: application/json
+
+{
+  "nombreCliente": "Cliente Fecha Pasada",
+  "telefono": "+573199998877",
+  "email": "cliente.pasado.api@example.com",
+  "trabajadoraId": "{{trabajadoraId}}",
+  "fecha": "2020-01-01",
+  "horaInicio": "10:00",
+  "serviciosIds": [
+    "{{servicioId}}"
+  ]
+}
+
+###
