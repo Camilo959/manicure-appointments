@@ -38,7 +38,12 @@ async function main() {
     const adminPassword = await bcrypt.hash('admin123', 10);
     const admin = await prisma.user.upsert({
       where: { email: 'admin@manicura.com' },
-      update: {},
+      update: {
+        nombre: 'Administrador',
+        password: adminPassword,
+        rol: 'ADMIN',
+        activo: true,
+      },
       create: {
         nombre: 'Administrador',
         email: 'admin@manicura.com',
@@ -53,7 +58,12 @@ async function main() {
     const trabajadora1Password = await bcrypt.hash('trabajadora123', 10);
     const userTrabajadora1 = await prisma.user.upsert({
       where: { email: 'maria@manicura.com' },
-      update: {},
+      update: {
+        nombre: 'María García',
+        password: trabajadora1Password,
+        rol: 'TRABAJADORA',
+        activo: true,
+      },
       create: {
         nombre: 'María García',
         email: 'maria@manicura.com',
@@ -68,7 +78,12 @@ async function main() {
     const trabajadora2Password = await bcrypt.hash('trabajadora123', 10);
     const userTrabajadora2 = await prisma.user.upsert({
       where: { email: 'lucia@manicura.com' },
-      update: {},
+      update: {
+        nombre: 'Lucía Rodríguez',
+        password: trabajadora2Password,
+        rol: 'TRABAJADORA',
+        activo: true,
+      },
       create: {
         nombre: 'Lucía Rodríguez',
         email: 'lucia@manicura.com',
@@ -157,16 +172,75 @@ async function main() {
     console.log('👥 Creando clientes de ejemplo...');
 
     const clientes = [
-      { nombre: 'Ana Martínez', telefono: '+57 300 123 4567', email: 'ana@example.com' },
-      { nombre: 'Carla López', telefono: '+57 301 234 5678', email: null },
-      { nombre: 'Diana Torres', telefono: '+57 302 345 6789', email: 'diana@example.com' },
+      {
+        nombre: 'Ana Martínez',
+        telefono: '+573001234567',
+        email: 'ana@example.com',
+        crearCuenta: true,
+        password: 'Cliente123',
+      },
+      {
+        nombre: 'Carla López',
+        telefono: '+573012345678',
+        email: null,
+        crearCuenta: false,
+        password: 'Cliente123',
+      },
+      {
+        nombre: 'Diana Torres',
+        telefono: '+573023456789',
+        email: 'diana@example.com',
+        crearCuenta: true,
+        password: 'Cliente123',
+      },
     ];
 
     for (const cliente of clientes) {
-      await prisma.cliente.create({
-        data: cliente,
+      let userClienteId: string | null = null;
+
+      if (cliente.crearCuenta && cliente.email) {
+        const clientePasswordHash = await bcrypt.hash(cliente.password, 10);
+
+        const userCliente = await prisma.user.upsert({
+          where: { email: cliente.email },
+          update: {
+            nombre: cliente.nombre,
+            password: clientePasswordHash,
+            rol: 'CLIENTE',
+            activo: true,
+          },
+          create: {
+            nombre: cliente.nombre,
+            email: cliente.email,
+            password: clientePasswordHash,
+            rol: 'CLIENTE',
+            activo: true,
+          },
+        });
+
+        userClienteId = userCliente.id;
+      }
+
+      await prisma.cliente.upsert({
+        where: { telefono: cliente.telefono },
+        update: {
+          nombre: cliente.nombre,
+          email: cliente.email,
+          userId: userClienteId,
+        },
+        create: {
+          nombre: cliente.nombre,
+          telefono: cliente.telefono,
+          email: cliente.email,
+          userId: userClienteId,
+        },
       });
-      console.log(`  ✅ Cliente creado: ${cliente.nombre}`);
+
+      if (userClienteId) {
+        console.log(`  ✅ Cliente creado/actualizado con cuenta: ${cliente.nombre} (${cliente.email})`);
+      } else {
+        console.log(`  ✅ Cliente creado/actualizado sin cuenta: ${cliente.nombre}`);
+      }
     }
 
     console.log('');
@@ -177,9 +251,18 @@ async function main() {
 
     console.log('🚫 Creando días bloqueados...');
 
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    const bloqueado1 = new Date(hoy);
+    bloqueado1.setDate(hoy.getDate() + 7);
+
+    const bloqueado2 = new Date(hoy);
+    bloqueado2.setDate(hoy.getDate() + 20);
+
     const diasBloqueados = [
-      { fecha: new Date('2026-02-14'), motivo: 'Día de San Valentín - Cerrado' },
-      { fecha: new Date('2026-03-15'), motivo: 'Mantenimiento del local' },
+      { fecha: bloqueado1, motivo: 'Día de descanso programado' },
+      { fecha: bloqueado2, motivo: 'Mantenimiento del local' },
     ];
 
     for (const dia of diasBloqueados) {
@@ -254,6 +337,7 @@ async function main() {
 
     console.log('📊 Resumen del seed:');
     console.log('  👤 Usuarios:', await prisma.user.count());
+    console.log('  👤 Usuarios CLIENTE:', await prisma.user.count({ where: { rol: 'CLIENTE' } }));
     console.log('  💅 Trabajadoras:', await prisma.trabajadora.count());
     console.log('  💼 Servicios:', await prisma.servicio.count());
     console.log('  👥 Clientes:', await prisma.cliente.count());
@@ -277,6 +361,18 @@ async function main() {
     console.log('  Trabajadora 2:');
     console.log('    Email: lucia@manicura.com');
     console.log('    Password: trabajadora123');
+    console.log('');
+    console.log('  Cliente 1:');
+    console.log('    Email: ana@example.com');
+    console.log('    Password: Cliente123');
+    console.log('');
+    console.log('  Cliente 2:');
+    console.log('    Sin cuenta (solo registro Cliente por teléfono)');
+    console.log('    Teléfono: +573012345678');
+    console.log('');
+    console.log('  Cliente 3:');
+    console.log('    Email: diana@example.com');
+    console.log('    Password: Cliente123');
     console.log('');
 
   } catch (error) {

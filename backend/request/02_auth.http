@@ -1,14 +1,14 @@
 @baseUrl = http://localhost:3000
 
-# Ajusta estas credenciales segun tu seed o tu entorno local.
+# Credenciales.
 @adminEmail = admin@manicura.com
 @adminPassword = admin123
-@clienteEmail = lucia@manicura.com
-@clientePassword = trabajadora123
-@adminToken = 0000
-@clienteToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2YjU1YzliNi02M2ZlLTRmOGItYTY3Ny04MGJjNTYyYmUzYzciLCJyb2wiOiJUUkFCQUpBRE9SQSIsImlhdCI6MTc3Njk5OTAwNywiZXhwIjoxNzc3MDg1NDA3fQ.RhI9Y4hDOU7ufLZkw1qU5w3CK4TFIA_DWvZtHzQj0JA
+@clienteEmail = ana@example.com
+@clientePassword = Cliente123
+@adminToken = 00000
+@clienteToken = 00000
 
-### Login ADMIN (guarda adminToken global)
+### Login ADMIN
 POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
@@ -16,12 +16,6 @@ Content-Type: application/json
   "email": "{{adminEmail}}",
   "password": "{{adminPassword}}"
 }
-###
-> {%
-if (response.status === 200 && response.body?.data?.token) {
-  client.global.set("adminToken", response.body.data.token);
-}
-%}
 
 ### GET /api/auth/me con ADMIN
 GET {{baseUrl}}/api/auth/me
@@ -40,13 +34,6 @@ Content-Type: application/json
   "email": "{{clienteEmail}}",
   "password": "{{clientePassword}}"
 }
-
-###
-> {%
-if (response.status === 200 && response.body?.data?.token) {
-  client.global.set("clienteToken", response.body.data.token);
-}
-%}
 
 ### GET /api/auth/me con CLIENTE
 GET {{baseUrl}}/api/auth/me
